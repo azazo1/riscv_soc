@@ -1,0 +1,124 @@
+`timescale 1ns / 1ps
+
+module decoder_vlg_tst;
+
+  reg [31:0] instr;
+
+  wire [6:0] opcode;
+  wire [4:0] rd;
+  wire [4:0] rs1;
+  wire [4:0] rs2;
+  wire [2:0] funct3;
+  wire [6:0] funct7;
+  wire is_lui;
+  wire is_auipc;
+  wire is_jal;
+  wire is_jalr;
+  wire is_branch;
+  wire is_load;
+  wire is_store;
+  wire is_op_imm;
+  wire is_op;
+
+  decoder dut (
+      .instr(instr),
+      .opcode(opcode),
+      .rd(rd),
+      .rs1(rs1),
+      .rs2(rs2),
+      .funct3(funct3),
+      .funct7(funct7),
+      .is_lui(is_lui),
+      .is_auipc(is_auipc),
+      .is_jal(is_jal),
+      .is_jalr(is_jalr),
+      .is_branch(is_branch),
+      .is_load(is_load),
+      .is_store(is_store),
+      .is_op_imm(is_op_imm),
+      .is_op(is_op)
+  );
+
+  initial begin
+    // R-type: sub x5, x6, x7
+    instr = {7'b0100000, 5'd7, 5'd6, 3'b000, 5'd5, 7'b0110011};
+    #1;
+    if (opcode != 7'b0110011 || rd != 5'd5 || rs1 != 5'd6 || rs2 != 5'd7 || funct3 != 3'b000 || funct7 != 7'b0100000) begin
+      $display("R-type fields failed");
+      $fatal;
+    end
+    if (!is_op || is_op_imm || is_load || is_store || is_branch || is_lui || is_auipc || is_jal || is_jalr) begin
+      $display("R-type opcode class failed");
+      $fatal;
+    end
+
+    // I-type OP-IMM: addi x1, x2, 0x123
+    instr = {12'h123, 5'd2, 3'b000, 5'd1, 7'b0010011};
+    #1;
+    if (opcode != 7'b0010011 || rd != 5'd1 || rs1 != 5'd2 || funct3 != 3'b000) begin
+      $display("OP-IMM fields failed");
+      $fatal;
+    end
+    if (!is_op_imm || is_op || is_load || is_store || is_branch || is_lui || is_auipc || is_jal || is_jalr) begin
+      $display("OP-IMM opcode class failed");
+      $fatal;
+    end
+
+    // Load: lw x3, 8(x4)
+    instr = {12'd8, 5'd4, 3'b010, 5'd3, 7'b0000011};
+    #1;
+    if (!is_load || is_store || is_op || is_op_imm || is_branch || is_lui || is_auipc || is_jal || is_jalr) begin
+      $display("LOAD opcode class failed");
+      $fatal;
+    end
+
+    // Store: sw x3, 8(x4)
+    instr = {7'b0000000, 5'd3, 5'd4, 3'b010, 5'b01000, 7'b0100011};
+    #1;
+    if (!is_store || is_load || is_op || is_op_imm || is_branch || is_lui || is_auipc || is_jal || is_jalr) begin
+      $display("STORE opcode class failed");
+      $fatal;
+    end
+
+    // Branch: beq x1, x2, 16
+    instr = {1'b0, 6'b000000, 5'd2, 5'd1, 3'b000, 4'b1000, 1'b0, 7'b1100011};
+    #1;
+    if (!is_branch || is_load || is_store || is_op || is_op_imm || is_lui || is_auipc || is_jal || is_jalr) begin
+      $display("BRANCH opcode class failed");
+      $fatal;
+    end
+
+    // U/J classes.
+    instr = {20'h12345, 5'd8, 7'b0110111};
+    #1;
+    if (!is_lui || is_auipc || is_jal || is_jalr || is_branch || is_load || is_store || is_op_imm || is_op) begin
+      $display("LUI opcode class failed");
+      $fatal;
+    end
+
+    instr = {20'h12345, 5'd8, 7'b0010111};
+    #1;
+    if (!is_auipc || is_lui || is_jal || is_jalr || is_branch || is_load || is_store || is_op_imm || is_op) begin
+      $display("AUIPC opcode class failed");
+      $fatal;
+    end
+
+    instr = {20'h00001, 5'd1, 7'b1101111};
+    #1;
+    if (!is_jal || is_lui || is_auipc || is_jalr || is_branch || is_load || is_store || is_op_imm || is_op) begin
+      $display("JAL opcode class failed");
+      $fatal;
+    end
+
+    instr = {12'd0, 5'd1, 3'b000, 5'd1, 7'b1100111};
+    #1;
+    if (!is_jalr || is_lui || is_auipc || is_jal || is_branch || is_load || is_store || is_op_imm || is_op) begin
+      $display("JALR opcode class failed");
+      $fatal;
+    end
+
+    $display("decoder test passed");
+    $finish;
+  end
+
+endmodule
