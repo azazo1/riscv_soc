@@ -125,5 +125,8 @@ module alu_vlg_tst;
       $display("AND failed: expected 0x0000FF00, got %h", result);
       $fatal;
     end
+
+    $display("alu test passed");
+    $finish;
   end
 endmodule

@@ -18,10 +18,16 @@ build-verilog top:
 run-verilog top:
     @just run-verilog-with {{ top }} {{ verilog_sources }}
 
-test: test-regfile
+test: test-regfile test-alu test-imm-gen
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
+
+test-alu:
+    @just run-verilog alu_vlg_tst
+
+test-imm-gen:
+    @just run-verilog imm_gen_vlg_tst
 
 clean:
     @rm -rf {{ build_dir }} obj_dir
