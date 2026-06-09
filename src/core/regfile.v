@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 // 寄存器堆, 用于根据地址读取寄存器的值
 module regfile (
     input wire clk,
@@ -33,5 +34,4 @@ module regfile (
       end
     end
   end
-
 endmodule

@@ -1,15 +1,27 @@
 build_dir := "build"
-hello_world_dir := join(build_dir, "hello_world")
+verilog_sources := `find src -type f -name '*.v' -print | sort | tr '\n' ' '`
 
 default:
     @just --list
 
-hello-world:
-    @mkdir -p {{ hello_world_dir }}
-    @verilator --binary --top-module hello_world --Mdir {{ hello_world_dir }} src/hello_world.v
+build-verilog-with top +sources:
+    @mkdir -p {{ build_dir }}/{{ top }}
+    @verilator --binary --top-module {{ top }} --Mdir {{ build_dir }}/{{ top }} {{ sources }}
 
-run-hello-world: hello-world
-    @./{{ hello_world_dir }}/Vhello_world
+run-verilog-with top +sources:
+    @just build-verilog-with {{ top }} {{ sources }}
+    @./{{ build_dir }}/{{ top }}/V{{ top }}
+
+build-verilog top:
+    @just build-verilog-with {{ top }} {{ verilog_sources }}
+
+run-verilog top:
+    @just run-verilog-with {{ top }} {{ verilog_sources }}
+
+test: test-regfile
+
+test-regfile:
+    @just run-verilog regfile_vlg_tst
 
 clean:
     @rm -rf {{ build_dir }} obj_dir
