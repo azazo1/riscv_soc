@@ -19,6 +19,12 @@ module decoder_vlg_tst;
   wire is_store;
   wire is_op_imm;
   wire is_op;
+  wire rd_we;
+  wire alu_src_imm;
+  wire mem_read;
+  wire mem_write;
+  wire branch;
+  wire jump;
 
   decoder dut (
       .instr(instr),
@@ -36,7 +42,13 @@ module decoder_vlg_tst;
       .is_load(is_load),
       .is_store(is_store),
       .is_op_imm(is_op_imm),
-      .is_op(is_op)
+      .is_op(is_op),
+      .rd_we(rd_we),
+      .alu_src_imm(alu_src_imm),
+      .mem_read(mem_read),
+      .mem_write(mem_write),
+      .branch(branch),
+      .jump(jump)
   );
 
   initial begin
@@ -51,6 +63,10 @@ module decoder_vlg_tst;
       $display("R-type opcode class failed");
       $fatal;
     end
+    if (!rd_we || alu_src_imm || mem_read || mem_write || branch || jump) begin
+      $display("R-type control failed");
+      $fatal;
+    end
 
     // I-type OP-IMM: addi x1, x2, 0x123
     instr = {12'h123, 5'd2, 3'b000, 5'd1, 7'b0010011};
@@ -63,12 +79,20 @@ module decoder_vlg_tst;
       $display("OP-IMM opcode class failed");
       $fatal;
     end
+    if (!rd_we || !alu_src_imm || mem_read || mem_write || branch || jump) begin
+      $display("OP-IMM control failed");
+      $fatal;
+    end
 
     // Load: lw x3, 8(x4)
     instr = {12'd8, 5'd4, 3'b010, 5'd3, 7'b0000011};
     #1;
     if (!is_load || is_store || is_op || is_op_imm || is_branch || is_lui || is_auipc || is_jal || is_jalr) begin
       $display("LOAD opcode class failed");
+      $fatal;
+    end
+    if (!rd_we || !alu_src_imm || !mem_read || mem_write || branch || jump) begin
+      $display("LOAD control failed");
       $fatal;
     end
 
@@ -79,12 +103,20 @@ module decoder_vlg_tst;
       $display("STORE opcode class failed");
       $fatal;
     end
+    if (rd_we || !alu_src_imm || mem_read || !mem_write || branch || jump) begin
+      $display("STORE control failed");
+      $fatal;
+    end
 
     // Branch: beq x1, x2, 16
     instr = {1'b0, 6'b000000, 5'd2, 5'd1, 3'b000, 4'b1000, 1'b0, 7'b1100011};
     #1;
     if (!is_branch || is_load || is_store || is_op || is_op_imm || is_lui || is_auipc || is_jal || is_jalr) begin
       $display("BRANCH opcode class failed");
+      $fatal;
+    end
+    if (rd_we || alu_src_imm || mem_read || mem_write || !branch || jump) begin
+      $display("BRANCH control failed");
       $fatal;
     end
 
@@ -95,11 +127,19 @@ module decoder_vlg_tst;
       $display("LUI opcode class failed");
       $fatal;
     end
+    if (!rd_we || !alu_src_imm || mem_read || mem_write || branch || jump) begin
+      $display("LUI control failed");
+      $fatal;
+    end
 
     instr = {20'h12345, 5'd8, 7'b0010111};
     #1;
     if (!is_auipc || is_lui || is_jal || is_jalr || is_branch || is_load || is_store || is_op_imm || is_op) begin
       $display("AUIPC opcode class failed");
+      $fatal;
+    end
+    if (!rd_we || !alu_src_imm || mem_read || mem_write || branch || jump) begin
+      $display("AUIPC control failed");
       $fatal;
     end
 
@@ -109,11 +149,19 @@ module decoder_vlg_tst;
       $display("JAL opcode class failed");
       $fatal;
     end
+    if (!rd_we || alu_src_imm || mem_read || mem_write || branch || !jump) begin
+      $display("JAL control failed");
+      $fatal;
+    end
 
     instr = {12'd0, 5'd1, 3'b000, 5'd1, 7'b1100111};
     #1;
     if (!is_jalr || is_lui || is_auipc || is_jal || is_branch || is_load || is_store || is_op_imm || is_op) begin
       $display("JALR opcode class failed");
+      $fatal;
+    end
+    if (!rd_we || !alu_src_imm || mem_read || mem_write || branch || !jump) begin
+      $display("JALR control failed");
       $fatal;
     end
 
