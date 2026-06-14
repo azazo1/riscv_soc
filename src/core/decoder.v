@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-// 指令译码器
+// 指令译码器 (纯组合逻辑)
 module decoder (
     input wire [31:0] instr,
     output wire [6:0] opcode,
