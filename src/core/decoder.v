@@ -24,7 +24,9 @@ module decoder (
     output wire mem_read,  // 是否读数据内存
     output wire mem_write,  // 是否写数据内存
     output wire branch,  // 是否是条件分支
-    output wire jump  // 是否是 `jal` 或者 `jalr`
+    output wire jump,  // 是否是 `jal` 或者 `jalr`
+
+    output reg [3:0] alu_op  // ALU 操作识别
 );
 
   localparam OPCODE_LUI = 7'b0110111;
@@ -36,6 +38,18 @@ module decoder (
   localparam OPCODE_STORE = 7'b0100011;
   localparam OPCODE_OP_IMM = 7'b0010011;
   localparam OPCODE_OP = 7'b0110011;
+
+  // 查看 alu.v 获取这些值的意义
+  localparam ALU_ADD = 4'd0;
+  localparam ALU_SUB = 4'd1;
+  localparam ALU_SLL = 4'd2;
+  localparam ALU_SLT = 4'd3;
+  localparam ALU_SLTU = 4'd4;
+  localparam ALU_XOR = 4'd5;
+  localparam ALU_SRL = 4'd6;
+  localparam ALU_SRA = 4'd7;
+  localparam ALU_OR = 4'd8;
+  localparam ALU_AND = 4'd9;
 
   assign opcode = instr[6:0];
   assign rd = instr[11:7];
@@ -61,5 +75,27 @@ module decoder (
 
   assign branch = is_branch;
   assign jump = is_jal || is_jalr;
+
+  always @(*) begin
+    case (funct3)
+      3'b000: begin
+        if (is_op && funct7 == 7'b0100000)
+          alu_op = ALU_SUB;  // 加上 is_op 的判断防止是立即数导致的, 立即数操作没有 SUBI.
+        else alu_op = ALU_ADD;
+      end
+      3'b001: alu_op = ALU_SLL;
+      3'b010: alu_op = ALU_SLT;
+      3'b011: alu_op = ALU_SLTU;
+      3'b100: alu_op = ALU_XOR;
+      3'b101: begin
+        if (funct7 == 7'b0100000) alu_op = ALU_SRA;
+        else alu_op = ALU_SRL;
+      end
+      3'b110: alu_op = ALU_OR;
+      3'b111: alu_op = ALU_AND;
+      default:
+      alu_op = ALU_ADD;  // todo 现在暂时不添加无效指令的分辨, 后续再添加.
+    endcase
+  end
 
 endmodule
