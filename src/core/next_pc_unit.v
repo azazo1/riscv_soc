@@ -15,7 +15,11 @@ module next_pc_unit (
 );
   always @(*) begin
     next_pc = pc + 4;
-    // 注意这里的优先级, Jump 需要优先于 Branch.
+    // 优先级: JALR > JAL > Branch > 默认(pc+4).
+    // 虽然 decoder 保证 jump 和 branch 不会同时为 1 (它们取自互斥的 opcode),
+    // 但此处显式将无条件跳转排在条件分支之前, 作为防御性设计:
+    // 若因上游 bug 导致两者同时有效, Jump 作为无条件跳转理应覆盖 Branch,
+    // 避免把本应跳转的指令误判为条件分支而产生难以追踪的错误.
     if (jump && is_jalr) begin  // Jump And Link Register, 使用 rs1 + imm 跳转.
       // risc-v 规定, JALR 结果最低位需要置 0.
       next_pc = (rs1_data + imm) & ~(32'h1);
