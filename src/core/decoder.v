@@ -26,7 +26,11 @@ module decoder (
     output wire branch,  // 是否是条件分支
     output wire jump,  // 是否是 `jal` 或者 `jalr`
 
-    output reg [3:0] alu_op  // ALU 操作识别
+    output reg [3:0] alu_op,  // ALU 操作识别
+
+    output reg [2:0] imm_sel,  // 立即数格式选择 (I/S/B/U/J 五种)
+
+    output reg [1:0] wb_sel  // 写回寄存器数据来源
 );
 
   localparam OPCODE_LUI = 7'b0110111;
@@ -50,6 +54,19 @@ module decoder (
   localparam ALU_SRA = 4'd7;
   localparam ALU_OR = 4'd8;
   localparam ALU_AND = 4'd9;
+
+  // 不同类型的指令立即数
+  localparam IMM_I = 3'd0;
+  localparam IMM_S = 3'd1;
+  localparam IMM_B = 3'd2;
+  localparam IMM_U = 3'd3;
+  localparam IMM_J = 3'd4;
+
+  // 写回寄存器数据来源
+  localparam WB_ALU = 2'd0;
+  localparam WB_MEM = 2'd1;
+  localparam WB_PC4 = 2'd2;  // 写回 PC+4, 用于 jal/jalr 保存返回地址 rd = pc + 4
+  localparam WB_IMM = 2'd3;
 
   assign opcode = instr[6:0];
   assign rd = instr[11:7];
@@ -94,7 +111,30 @@ module decoder (
       3'b110: alu_op = ALU_OR;
       3'b111: alu_op = ALU_AND;
       default:
-      alu_op = ALU_ADD;  // todo 现在暂时不添加无效指令的分辨, 后续再添加.
+      alu_op = ALU_ADD;  // todo: 现在暂时不添加无效指令的分辨, 后续再添加.
+    endcase
+  end
+
+  always @(*) begin
+    case (opcode)
+      OPCODE_LUI, OPCODE_AUIPC: imm_sel = IMM_U;
+      OPCODE_JAL:               imm_sel = IMM_J;
+      OPCODE_BRANCH:            imm_sel = IMM_B;
+      OPCODE_STORE:             imm_sel = IMM_S;
+      // OPCODE_JALR, OPCODE_LOAD, OPCODE_OP_IMM, OPCODE_OP 和无效指令都默认用 IMM_I.
+      // 其中 OPCODE_OP (R-type) 实际上不使用 imm_sel, 这里仅作占位.
+      // todo: 可能需要判断是否是无效指令.
+      default:                  imm_sel = IMM_I;
+    endcase
+  end
+
+  always @(*) begin
+    case (opcode)
+      OPCODE_LOAD: wb_sel = WB_MEM;
+      OPCODE_JAL, OPCODE_JALR: wb_sel = WB_PC4;
+      OPCODE_LUI: wb_sel = WB_IMM;
+      // todo: 可能需要判断无效指令.
+      default: wb_sel = WB_ALU;
     endcase
   end
 

@@ -26,6 +26,8 @@ module decoder_vlg_tst;
   wire branch;
   wire jump;
   wire [3:0] alu_op;
+  wire [2:0] imm_sel;
+  wire [1:0] wb_sel;
 
   localparam ALU_ADD  = 4'd0;
   localparam ALU_SUB  = 4'd1;
@@ -37,6 +39,17 @@ module decoder_vlg_tst;
   localparam ALU_SRA  = 4'd7;
   localparam ALU_OR   = 4'd8;
   localparam ALU_AND  = 4'd9;
+
+  localparam IMM_I = 3'd0;
+  localparam IMM_S = 3'd1;
+  localparam IMM_B = 3'd2;
+  localparam IMM_U = 3'd3;
+  localparam IMM_J = 3'd4;
+
+  localparam WB_ALU = 2'd0;
+  localparam WB_MEM = 2'd1;
+  localparam WB_PC4 = 2'd2;
+  localparam WB_IMM = 2'd3;
 
   decoder dut (
       .instr(instr),
@@ -61,7 +74,9 @@ module decoder_vlg_tst;
       .mem_write(mem_write),
       .branch(branch),
       .jump(jump),
-      .alu_op(alu_op)
+      .alu_op(alu_op),
+      .imm_sel(imm_sel),
+      .wb_sel(wb_sel)
   );
 
   initial begin
@@ -82,6 +97,10 @@ module decoder_vlg_tst;
     end
     if (alu_op != ALU_SUB) begin
       $display("R-type SUB alu_op failed: got %d", alu_op);
+      $fatal;
+    end
+    if (imm_sel != IMM_I || wb_sel != WB_ALU) begin
+      $display("R-type select failed: imm_sel=%d wb_sel=%d", imm_sel, wb_sel);
       $fatal;
     end
 
@@ -118,6 +137,10 @@ module decoder_vlg_tst;
     #1;
     if (alu_op != ALU_ADD) begin
       $display("OP-IMM ADDI with high bits alu_op failed: got %d", alu_op);
+      $fatal;
+    end
+    if (imm_sel != IMM_I || wb_sel != WB_ALU) begin
+      $display("OP-IMM select failed: imm_sel=%d wb_sel=%d", imm_sel, wb_sel);
       $fatal;
     end
 
@@ -189,6 +212,10 @@ module decoder_vlg_tst;
       $display("LOAD control failed");
       $fatal;
     end
+    if (imm_sel != IMM_I || wb_sel != WB_MEM) begin
+      $display("LOAD select failed: imm_sel=%d wb_sel=%d", imm_sel, wb_sel);
+      $fatal;
+    end
 
     // Store: sw x3, 8(x4)
     instr = {7'b0000000, 5'd3, 5'd4, 3'b010, 5'b01000, 7'b0100011};
@@ -199,6 +226,10 @@ module decoder_vlg_tst;
     end
     if (rd_we || !alu_src_imm || mem_read || !mem_write || branch || jump) begin
       $display("STORE control failed");
+      $fatal;
+    end
+    if (imm_sel != IMM_S || wb_sel != WB_ALU) begin
+      $display("STORE select failed: imm_sel=%d wb_sel=%d", imm_sel, wb_sel);
       $fatal;
     end
 
@@ -213,6 +244,10 @@ module decoder_vlg_tst;
       $display("BRANCH control failed");
       $fatal;
     end
+    if (imm_sel != IMM_B || wb_sel != WB_ALU) begin
+      $display("BRANCH select failed: imm_sel=%d wb_sel=%d", imm_sel, wb_sel);
+      $fatal;
+    end
 
     // U/J classes.
     instr = {20'h12345, 5'd8, 7'b0110111};
@@ -223,6 +258,10 @@ module decoder_vlg_tst;
     end
     if (!rd_we || !alu_src_imm || mem_read || mem_write || branch || jump) begin
       $display("LUI control failed");
+      $fatal;
+    end
+    if (imm_sel != IMM_U || wb_sel != WB_IMM) begin
+      $display("LUI select failed: imm_sel=%d wb_sel=%d", imm_sel, wb_sel);
       $fatal;
     end
 
@@ -236,6 +275,10 @@ module decoder_vlg_tst;
       $display("AUIPC control failed");
       $fatal;
     end
+    if (imm_sel != IMM_U || wb_sel != WB_ALU) begin
+      $display("AUIPC select failed: imm_sel=%d wb_sel=%d", imm_sel, wb_sel);
+      $fatal;
+    end
 
     instr = {20'h00001, 5'd1, 7'b1101111};
     #1;
@@ -247,6 +290,10 @@ module decoder_vlg_tst;
       $display("JAL control failed");
       $fatal;
     end
+    if (imm_sel != IMM_J || wb_sel != WB_PC4) begin
+      $display("JAL select failed: imm_sel=%d wb_sel=%d", imm_sel, wb_sel);
+      $fatal;
+    end
 
     instr = {12'd0, 5'd1, 3'b000, 5'd1, 7'b1100111};
     #1;
@@ -256,6 +303,10 @@ module decoder_vlg_tst;
     end
     if (!rd_we || !alu_src_imm || mem_read || mem_write || branch || !jump) begin
       $display("JALR control failed");
+      $fatal;
+    end
+    if (imm_sel != IMM_I || wb_sel != WB_PC4) begin
+      $display("JALR select failed: imm_sel=%d wb_sel=%d", imm_sel, wb_sel);
       $fatal;
     end
 
