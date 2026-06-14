@@ -25,6 +25,18 @@ module decoder_vlg_tst;
   wire mem_write;
   wire branch;
   wire jump;
+  wire [3:0] alu_op;
+
+  localparam ALU_ADD  = 4'd0;
+  localparam ALU_SUB  = 4'd1;
+  localparam ALU_SLL  = 4'd2;
+  localparam ALU_SLT  = 4'd3;
+  localparam ALU_SLTU = 4'd4;
+  localparam ALU_XOR  = 4'd5;
+  localparam ALU_SRL  = 4'd6;
+  localparam ALU_SRA  = 4'd7;
+  localparam ALU_OR   = 4'd8;
+  localparam ALU_AND  = 4'd9;
 
   decoder dut (
       .instr(instr),
@@ -48,7 +60,8 @@ module decoder_vlg_tst;
       .mem_read(mem_read),
       .mem_write(mem_write),
       .branch(branch),
-      .jump(jump)
+      .jump(jump),
+      .alu_op(alu_op)
   );
 
   initial begin
@@ -67,6 +80,18 @@ module decoder_vlg_tst;
       $display("R-type control failed");
       $fatal;
     end
+    if (alu_op != ALU_SUB) begin
+      $display("R-type SUB alu_op failed: got %d", alu_op);
+      $fatal;
+    end
+
+    // R-type: add x5, x6, x7
+    instr = {7'b0000000, 5'd7, 5'd6, 3'b000, 5'd5, 7'b0110011};
+    #1;
+    if (alu_op != ALU_ADD) begin
+      $display("R-type ADD alu_op failed: got %d", alu_op);
+      $fatal;
+    end
 
     // I-type OP-IMM: addi x1, x2, 0x123
     instr = {12'h123, 5'd2, 3'b000, 5'd1, 7'b0010011};
@@ -81,6 +106,75 @@ module decoder_vlg_tst;
     end
     if (!rd_we || !alu_src_imm || mem_read || mem_write || branch || jump) begin
       $display("OP-IMM control failed");
+      $fatal;
+    end
+    if (alu_op != ALU_ADD) begin
+      $display("OP-IMM ADDI alu_op failed: got %d", alu_op);
+      $fatal;
+    end
+
+    // OP-IMM must not decode funct7-like bits as SUB.
+    instr = {7'b0100000, 5'd1, 5'd2, 3'b000, 5'd1, 7'b0010011};
+    #1;
+    if (alu_op != ALU_ADD) begin
+      $display("OP-IMM ADDI with high bits alu_op failed: got %d", alu_op);
+      $fatal;
+    end
+
+    // Shift and logic ALU operations.
+    instr = {7'b0000000, 5'd7, 5'd6, 3'b001, 5'd5, 7'b0110011};
+    #1;
+    if (alu_op != ALU_SLL) begin
+      $display("SLL alu_op failed: got %d", alu_op);
+      $fatal;
+    end
+
+    instr = {7'b0000000, 5'd7, 5'd6, 3'b010, 5'd5, 7'b0110011};
+    #1;
+    if (alu_op != ALU_SLT) begin
+      $display("SLT alu_op failed: got %d", alu_op);
+      $fatal;
+    end
+
+    instr = {7'b0000000, 5'd7, 5'd6, 3'b011, 5'd5, 7'b0110011};
+    #1;
+    if (alu_op != ALU_SLTU) begin
+      $display("SLTU alu_op failed: got %d", alu_op);
+      $fatal;
+    end
+
+    instr = {7'b0000000, 5'd7, 5'd6, 3'b100, 5'd5, 7'b0110011};
+    #1;
+    if (alu_op != ALU_XOR) begin
+      $display("XOR alu_op failed: got %d", alu_op);
+      $fatal;
+    end
+
+    instr = {7'b0000000, 5'd7, 5'd6, 3'b101, 5'd5, 7'b0110011};
+    #1;
+    if (alu_op != ALU_SRL) begin
+      $display("SRL alu_op failed: got %d", alu_op);
+      $fatal;
+    end
+
+    instr = {7'b0100000, 5'd7, 5'd6, 3'b101, 5'd5, 7'b0110011};
+    #1;
+    if (alu_op != ALU_SRA) begin
+      $display("SRA alu_op failed: got %d", alu_op);
+      $fatal;
+    end
+
+    instr = {7'b0000000, 5'd7, 5'd6, 3'b110, 5'd5, 7'b0110011};
+    #1;
+    if (alu_op != ALU_OR) begin
+      $display("OR alu_op failed: got %d", alu_op);
+      $fatal;
+    end
+
+    instr = {7'b0000000, 5'd7, 5'd6, 3'b111, 5'd5, 7'b0110011};
+    #1;
+    if (alu_op != ALU_AND) begin
+      $display("AND alu_op failed: got %d", alu_op);
       $fatal;
     end
 
