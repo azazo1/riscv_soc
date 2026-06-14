@@ -18,7 +18,7 @@ build-verilog top:
 run-verilog top:
     @just run-verilog-with {{ top }} {{ verilog_sources }}
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -34,6 +34,9 @@ test-decoder:
 
 test-branch-unit:
     @just run-verilog branch_unit_vlg_tst
+
+test-load-store-unit:
+    @just run-verilog load_store_unit_vlg_tst
 
 clean:
     @rm -rf {{ build_dir }} obj_dir
