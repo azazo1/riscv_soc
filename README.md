@@ -20,6 +20,8 @@ GPIO0 同理.
 
 ![](docs/gpio0-1.png)
 
+> 好像这张图不太一样.
+
 来源: <https://www-ug.eecg.utoronto.ca/desl/nios_devices_SoC/dev_pit.html>
 
 ## 环境准备
