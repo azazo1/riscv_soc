@@ -14,28 +14,35 @@
 
 如果一定要用 J11, 就需要走 HPS 侧, 先由 HPS 访问 microSD, 再通过 HPS-to-FPGA bridge 写入 FPGA 侧存储器.
 
-当前项目更推荐先把 external SPI SD 模块作为 FPGA 侧启动介质, 这样可以和现有的 `simple_bus`, `simple_ram`, `bootloader` 直接协作. 板载 microSD 继续保留给后续 HPS 方案.
+当前项目更推荐先把 external SPI SD 模块作为 FPGA 侧启动介质, 这样可以和现有的 `simple_bus`, `simple_dual_port_ram`, `bootloader` 直接协作. 板载 microSD 继续保留给后续 HPS 方案.
 
 ## init.bin 约定
 
 SD 卡中的执行程序命名为 `init.bin`.
 
-`init.bin` 是原始 binary 文件, 不是 hex 文件. 当前 `*.hex` 只用于 `$readmemh` 初始化 `simple_rom`, 不作为 SD 卡程序格式.
+`init.bin` 是原始 binary 文件, 不是 hex 文件. 当前 `*.hex` 只用于 `$readmemh` 初始化 `simple_rom`, 不作为 SD 卡程序格式, 也就是说 `.hex` 用来当作 bootloader 启动.
 
-第一版建议把 `init.bin` 放在 SD 卡根目录. bootloader 的任务是:
+当前 bootloader 会在 FAT32 根目录查找 `INIT.BIN`. 文件名可以在电脑上显示为 `init.bin`, 但 SD 卡目录项必须能形成短文件名 `INIT    BIN`.
+
+bootloader 的任务是:
 
 1. 初始化 SPI SD 卡.
-2. 读取根目录中的 `init.bin`.
-3. 把 `init.bin` 拷贝到 RAM 或 SDRAM.
-4. 跳转到程序入口执行.
+2. 读取 MBR 或直接读取 FAT32 BPB.
+3. 解析 FAT32 参数和根目录 cluster.
+4. 查找根目录中的 `INIT.BIN`.
+5. 把 `INIT.BIN` 拷贝到 `0x0000_8000`.
+6. 跳转到 `0x0000_8000` 执行.
 
-如果先不实现 FAT, 也可以定义一个更简单的临时布局:
+第一版 FAT32 支持范围:
 
-1. SD 卡前若干 sector 保留.
-2. 从固定 sector 开始连续存放 `init.bin`.
-3. 固定长度或在文件头中记录长度.
-
-这个临时布局更容易验证硬件和 SPI 时序. FAT 支持可以后续再补.
+- SDHC/SDSC SPI mode 初始化.
+- 单 sector 读取, 命令是 CMD17.
+- sector 大小必须是 512 bytes.
+- FAT32 根目录遍历.
+- 只查找短文件名 `INIT.BIN`.
+- 支持跨 cluster 文件链.
+- `INIT.BIN` 最大 28 KiB, 因为当前 RAM 从 `0x0000_8000` 到 `0x0000_ffff`.
+- 不支持长文件名, 子目录, 写入, exFAT, FAT16.
 
 ## 和当前 ROM 的关系
 
@@ -45,6 +52,18 @@ SD 卡中的执行程序命名为 `init.bin`.
 - SD 启动阶段: 放 bootloader.
 
 bootloader 自身仍然可以用 hex 初始化到 ROM, 但它从 SD 卡读取的目标程序必须是 `init.bin` binary.
+
+运行下面命令可以生成 ROM 里的 bootloader:
+
+```shell
+just firmware-bootloader
+```
+
+输出文件是:
+
+```text
+firmware/bootloader/bootloader.hex
+```
 
 运行下面命令可以先生成后续放入 SD 卡的二进制文件:
 
@@ -57,3 +76,5 @@ just firmware-init-bin
 ```text
 build/firmware/sdcard/init.bin
 ```
+
+把 `build/firmware/sdcard/init.bin` 复制到 FAT32 SD 卡根目录, 文件名使用 `init.bin` 或 `INIT.BIN` 均可.

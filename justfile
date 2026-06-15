@@ -18,7 +18,7 @@ build-verilog top:
 run-verilog top:
     @just run-verilog-with {{ top }} {{ verilog_sources }}
 
-firmware: firmware-board-demo firmware-uart-demo firmware-init-bin
+firmware: firmware-board-demo firmware-uart-demo firmware-bootloader firmware-init-bin
 
 firmware-board-demo:
     @mkdir -p {{ build_dir }}/firmware/board_demo
@@ -55,16 +55,31 @@ firmware-c-demo:
     @just bin-to-rom-hex {{ build_dir }}/firmware/c_demo/c_demo.bin firmware/c_demo/c_demo.hex
     @riscv64-elf-size {{ build_dir }}/firmware/c_demo/c_demo.elf
 
-firmware-init-bin: firmware-c-demo
+firmware-bootloader:
+    @mkdir -p {{ build_dir }}/firmware/bootloader
+    @# bootloader 放进 ROM 从 0x0000_0000 启动, 运行后读取 SD 根目录的 INIT.BIN.
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/firmware/bootloader/main.o firmware/bootloader/main.c
+    riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/firmware/bootloader/startup.o firmware/bootloader/startup.S
+    @# linker.ld 把 bootloader 代码放在 ROM, 把 sector buffer 和 stack 放在 0x0000_f000 附近.
+    riscv64-elf-ld -m elf32lriscv -T firmware/bootloader/linker.ld -o {{ build_dir }}/firmware/bootloader/bootloader.elf {{ build_dir }}/firmware/bootloader/startup.o {{ build_dir }}/firmware/bootloader/main.o
+    riscv64-elf-objcopy -O binary -j .text -j .rodata {{ build_dir }}/firmware/bootloader/bootloader.elf {{ build_dir }}/firmware/bootloader/bootloader.bin
+    @just bin-to-rom-hex {{ build_dir }}/firmware/bootloader/bootloader.bin firmware/bootloader/bootloader.hex
+    @riscv64-elf-size {{ build_dir }}/firmware/bootloader/bootloader.elf
+
+firmware-init-bin:
     @mkdir -p {{ build_dir }}/firmware/sdcard
-    @# init.bin 是后续 SD bootloader 读取的原始 binary, 不是 $readmemh 使用的 hex.
-    @cp {{ build_dir }}/firmware/c_demo/c_demo.bin {{ build_dir }}/firmware/sdcard/init.bin
+    @# init.bin 是 SD bootloader 读取的原始 binary, 入口地址按 0x0000_8000 链接.
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/firmware/sdcard/main.o firmware/c_demo/main.c
+    riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/firmware/sdcard/startup.o firmware/c_demo/startup.S
+    riscv64-elf-ld -m elf32lriscv -T firmware/init_app/linker.ld -o {{ build_dir }}/firmware/sdcard/init.elf {{ build_dir }}/firmware/sdcard/startup.o {{ build_dir }}/firmware/sdcard/main.o
+    riscv64-elf-objcopy -O binary -j .text -j .rodata {{ build_dir }}/firmware/sdcard/init.elf {{ build_dir }}/firmware/sdcard/init.bin
+    @riscv64-elf-size {{ build_dir }}/firmware/sdcard/init.elf
 
 bin-to-rom-hex input output:
     @# xxd -e -g 4 -c 4 把 little-endian 字节按 32-bit word 输出给 $readmemh.
     @xxd -e -g 4 -c 4 {{ input }} | awk '{ print $2 }' > {{ output }}
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-ram-exec test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -120,13 +135,16 @@ test-rv32i-soc: firmware-board-demo
 test-rv32i-soc-mmio:
     @just run-verilog rv32i_soc_mmio_vlg_tst
 
+test-rv32i-soc-ram-exec:
+    @just run-verilog rv32i_soc_ram_exec_vlg_tst
+
 test-rv32i-soc-uart-rom: firmware-uart-demo
     @just run-verilog rv32i_soc_uart_rom_vlg_tst
 
 test-rv32i-soc-c-rom: firmware-c-demo
     @just run-verilog rv32i_soc_c_rom_vlg_tst
 
-test-de1-soc-top: firmware-c-demo
+test-de1-soc-top: firmware-board-demo
     @just run-verilog de1_soc_top_vlg_tst
 
 clean:

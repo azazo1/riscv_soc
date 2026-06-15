@@ -2,7 +2,7 @@
 
 // 适用于 de1_soc 的顶层模块, 用于在 quartus 中直接编译.
 module de1_soc_top #(
-    parameter ROM_FILE = "firmware/c_demo/c_demo.hex"
+    parameter ROM_FILE = "firmware/bootloader/bootloader.hex"
 ) (
     input wire clk,
 

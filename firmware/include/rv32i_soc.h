@@ -2,6 +2,7 @@
 #define RV32I_SOC_H
 
 typedef unsigned char u8;
+typedef unsigned short u16;
 typedef unsigned int u32;
 
 #define RV32I_REG32(addr) (*(volatile u32 *)(addr))

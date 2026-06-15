@@ -9,6 +9,8 @@
 - `firmware/c_demo/linker.ld`: 链接脚本, 指定 ROM 和 RAM 的地址范围.
 - `firmware/c_demo/main.c`: C 示例程序.
 - `firmware/c_demo/c_demo.hex`: 给 `simple_rom` 使用的 ROM 镜像.
+- `firmware/init_app/linker.ld`: SD 启动程序链接脚本, 程序入口放在 `0x0000_8000`.
+- `build/firmware/sdcard/init.bin`: 给 bootloader 从 SD 卡读取的 raw binary.
 
 ## 地址布局
 
@@ -20,6 +22,14 @@
 | RAM | `0x0000_8000` | `1K` | `.data`, `.bss`, stack |
 
 `simple_rom` 的默认容量是 8192 words, 也就是 32 KiB. 取指仍然直连 ROM. data bus 也可以只读访问 `0x0000_0000` 到 `0x0000_7fff`, 这样 C 字符串常量放在 `.rodata` 后, `lbu` 可以正常把字符读出来.
+
+SD 启动程序使用这个内存布局:
+
+| 区域 | 起始地址 | 大小 | 用途 |
+| --- | --- | --- | --- |
+| RAM | `0x0000_8000` | `32K` | `.text`, `.rodata`, `.data`, `.bss`, stack |
+
+bootloader 会把 `INIT.BIN` 从 SD 卡拷贝到 `0x0000_8000`, 然后跳到这个地址执行. 因此 SD 启动程序必须使用 `firmware/init_app/linker.ld` 链接, 不能直接复用 ROM 地址的 `firmware/c_demo/linker.ld`.
 
 ## 头文件
 
@@ -49,6 +59,19 @@ just firmware-c-demo
 - `firmware/c_demo/c_demo.hex`: `simple_rom` 最终读取的 hex 文件.
 
 `firmware/c_demo/c_demo.hex` 只包含实际固件 word. 如果 CPU 跑到 hex 未初始化的 ROM 区域, 读到的内容不作为稳定行为依赖.
+
+生成 SD 卡用的 `init.bin`:
+
+```shell
+just firmware-init-bin
+```
+
+它会生成:
+
+- `build/firmware/sdcard/init.elf`: 按 `0x0000_8000` 链接的 ELF 文件.
+- `build/firmware/sdcard/init.bin`: 放到 FAT32 SD 卡根目录的 raw binary.
+
+`init.bin` 不是 hex 文件, 不能给 `$readmemh` 直接使用. bootloader 会按 FAT32 文件读取它.
 
 ## 参数含义
 
@@ -89,7 +112,7 @@ riscv64-elf-objdump -d build/firmware/c_demo/c_demo.elf
 
 ## 上板现象
 
-`de1_soc_top` 默认使用 `firmware/c_demo/c_demo.hex`.
+如果使用 `firmware/c_demo/c_demo.hex` 直接作为 ROM:
 
 复位释放后:
 
@@ -97,3 +120,5 @@ riscv64-elf-objdump -d build/firmware/c_demo/c_demo.elf
 - UART 发送 `C demo\n`.
 - KEY 状态改变时, UART 发送 `Kx\n`, 其中 `x` 是 KEY 低 4 bit 的十六进制值.
 - KEY 状态改变后, `LEDR[1:0]` 显示 `11`.
+
+如果使用 `de1_soc_top` 默认配置, ROM 里先运行 bootloader. bootloader 通过 SPI SD 模块读取 FAT32 根目录的 `INIT.BIN`, 再跳到 RAM 执行. 当前 `just firmware-init-bin` 生成的 `INIT.BIN` 运行后也是上面的 C demo 行为.

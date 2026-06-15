@@ -4,12 +4,13 @@
 
 ## 当前边界
 
-当前 SoC 负责连接 CPU, 指令 ROM, 数据 RAM, 数据总线, GPIO MMIO, UART TX, SPI master.
+当前 SoC 负责连接 CPU, 指令 ROM, 双口 RAM, 数据总线, GPIO MMIO, UART TX, SPI master.
 
 - CPU 使用 `rv32i_core`.
-- 指令从 `simple_rom` 读取, 暂时不走 data bus.
+- 取指地址在 `0x0000_0000` 到 `0x0000_7fff` 时读取 `simple_rom`, 在 `0x0000_8000` 到 `0x0000_ffff` 时读取 RAM.
 - 数据读写从 core 发出, 先进入 `simple_bus`.
 - `simple_bus` 按地址窗口选择 ROM 只读窗口, RAM, GPIO MMIO, UART TX MMIO 或 SPI MMIO.
+- `simple_dual_port_ram` 同时提供 data bus 访问口和 RAM 取指口.
 - `gpio_mmio` 提供 LEDR, SW, KEY, HEX0..HEX5, GPIO_0, GPIO_1 的寄存器访问.
 - `uart_tx_mmio` 提供 UART TX 寄存器访问.
 - `uart_tx` 负责产生 UART TX 串口波形.
@@ -23,18 +24,19 @@
 
 ```text
 rv32i_core
-  imem_addr  -> simple_rom.addr
-  imem_rdata <- simple_rom.rdata
+  imem_addr  -> imem mux
+                   -> simple_rom
+                   -> simple_dual_port_ram imem port
 
   dmem_*     -> simple_bus
                    -> simple_rom (read-only)
-                   -> simple_ram
+                   -> simple_dual_port_ram data port
                    -> gpio_mmio
                    -> uart_tx_mmio -> uart_tx
                    -> spi_master_mmio -> external SPI SD module
 ```
 
-当前仍然是 Harvard 结构. 取指接口独立连接 ROM, 数据接口连接 bus. 这样可以先避免取指和访存之间的仲裁问题.
+当前仍然是 Harvard 接口. 取指接口独立连接 ROM/RAM mux, 数据接口连接 bus. 这样可以先避免取指和访存之间的仲裁问题.
 
 ## 模块分工
 
@@ -47,7 +49,7 @@ rv32i_core
 - `addr` 是字节地址.
 - RV32I 指令固定 4 字节, 所以可用 `addr[31:2]` 选择第几条指令.
 - ROM 内容通过 `$readmemh` 从 hex 文件初始化.
-- 默认 `ROM_FILE` 是 `firmware/board_demo/board_demo.hex`.
+- 默认 `ROM_FILE` 是 `firmware/board_demo/board_demo.hex`, 板级 `de1_soc_top` 默认改用 `firmware/bootloader/bootloader.hex`.
 - `ROM_WORDS` 默认是 8192, 对应 32 KiB.
 - `ROM_WORDS` 决定可访问的 word 数, 超出范围时返回 `32'h0000_0013`.
 - 固件 hex 只包含实际固件 word, 未写入的 ROM 内容不作为稳定行为依赖.
@@ -58,11 +60,13 @@ UART 实机测试固件是 `firmware/uart_demo/uart_demo.S`. 运行 `just firmwa
 
 C 实机测试固件是 `firmware/c_demo/main.c`. 运行 `just firmware-c-demo` 会生成 `firmware/c_demo/c_demo.hex`.
 
-`de1_soc_top` 默认使用 C 实机测试固件. `rv32i_soc` 默认仍使用 `board_demo.hex`, 方便本地仿真保持快速自检.
+SD 启动固件是 `firmware/bootloader/main.c`. 运行 `just firmware-bootloader` 会生成 `firmware/bootloader/bootloader.hex`.
+
+`de1_soc_top` 默认使用 bootloader 固件. `rv32i_soc` 默认仍使用 `board_demo.hex`, 方便本地仿真保持快速自检.
 
 `firmware/test/simple_rom.hex` 只给 `simple_rom_vlg_tst` 使用, 不作为上板程序.
 
-当前上板自检固件的行为:
+`board_demo` 上板自检固件的行为:
 
 - 运行 ALU, branch, RAM load/store, MMIO read/write 的最小自检.
 - 全部通过时 `LEDR[3:0]` 显示 `1111`, `HEX0` 显示 `0`, `HEX1` 到 `HEX5` 熄灭.
@@ -72,7 +76,7 @@ C 实机测试固件是 `firmware/c_demo/main.c`. 运行 `just firmware-c-demo` 
 
 ### `simple_ram`
 
-`simple_ram` 是数据存储器.
+`simple_ram` 是早期的数据存储器, 当前主要保留给单元测试和对照阅读.
 
 - 输入 `req`, 表示 CPU 发起数据访问.
 - 输入 `we`, 表示写访问.
@@ -85,13 +89,23 @@ C 实机测试固件是 `firmware/c_demo/main.c`. 运行 `just firmware-c-demo` 
 
 写入时按 `be` 分字节更新 32 位 word. 这样 `SB`, `SH`, `SW` 都可以共用同一个 RAM 模块.
 
+### `simple_dual_port_ram`
+
+`rv32i_soc` 当前使用 `simple_dual_port_ram`.
+
+- data 口给 `simple_bus` 使用, 支持组合读和同步写.
+- imem 口给 CPU 从 RAM 取指使用, 只读.
+- RAM 本地地址从 0 开始, SoC 地址 `0x0000_8000` 对应 RAM 本地 word 0.
+- 默认容量是 8192 words, 也就是 32 KiB.
+- reset 不清空 RAM, 避免综合出很大的复位清零逻辑.
+
 ### `simple_bus`
 
 `simple_bus` 是当前的数据访问译码器.
 
 - 接收 core 的 `dmem_req`, `dmem_we`, `dmem_be`, `dmem_addr`, `dmem_wdata`.
 - 当地址落在 ROM 区间且是读访问时, 转发到只读 ROM.
-- 当地址落在 RAM 区间时, 转发到 `simple_ram`.
+- 当地址落在 RAM 区间时, 转发到 `simple_dual_port_ram` data 口.
 - 当地址落在 GPIO MMIO 区间时, 转发到 `gpio_mmio`.
 - 当地址落在 UART MMIO 区间时, 转发到 `uart_tx_mmio`.
 - 当地址落在 SPI MMIO 区间时, 转发到 `spi_master_mmio`.
@@ -103,7 +117,7 @@ C 实机测试固件是 `firmware/c_demo/main.c`. 运行 `just firmware-c-demo` 
 | 地址范围 | 目标 | 说明 |
 | --- | --- | --- |
 | `0x0000_0000` - `0x0000_7fff` | ROM | 取指直连 `simple_rom`, data bus 可只读访问常量 |
-| `0x0000_8000` - `0x00ff_ffff` | RAM | data bus 访问, 当前实际 RAM 只有 256 words |
+| `0x0000_8000` - `0x0000_ffff` | RAM | data bus 访问, 也支持从这里取指 |
 | `0x0100_0000` - `0x0100_00ff` | GPIO MMIO | LEDR, SW, KEY, HEX, GPIO_0, GPIO_1 |
 | `0x0100_0100` - `0x0100_01ff` | UART MMIO | UART TX |
 | `0x0100_0200` - `0x0100_02ff` | SPI MMIO | 外接 SPI SD 模块基础传输 |
@@ -199,10 +213,11 @@ DE1-SoC 的 GPIO 排针一般叫 40 pin, 但其中包含 VCC 和 GND. 当前 QSF
 - `rv32i_core`
 - `simple_rom`
 - `simple_bus`
-- `simple_ram`
+- `simple_dual_port_ram`
 - `gpio_mmio`
 - `uart_tx_mmio`
 - `uart_tx`
+- `spi_master_mmio`
 
 对外接口:
 

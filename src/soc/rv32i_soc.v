@@ -84,9 +84,23 @@ module rv32i_soc #(
 
   wire [31:0] imem_addr;
   wire [31:0] imem_rdata;
+  wire [31:0] rom_imem_rdata;
+  wire [31:0] ram_imem_addr;
+  wire [31:0] ram_imem_rdata;
+
+  localparam ROM_LIMIT = 32'h0000_8000;
+  localparam RAM_BASE = 32'h0000_8000;
+  localparam RAM_LIMIT = 32'h0001_0000; // todo 支持 sdram 之后增大这个
+
+  wire imem_rom_hit = imem_addr < ROM_LIMIT;
+  wire imem_ram_hit = (imem_addr >= RAM_BASE) && (imem_addr < RAM_LIMIT);
+
+  assign ram_imem_addr = imem_addr - RAM_BASE;
+  assign imem_rdata = imem_rom_hit ? rom_imem_rdata :
+                      imem_ram_hit ? ram_imem_rdata : 32'h0000_0013;
 
 
-  simple_ram u_ram (
+  simple_dual_port_ram u_ram (
       .clk(clk),
       .rst_n(rst_n),
       .req(ram_req),
@@ -94,7 +108,10 @@ module rv32i_soc #(
       .be(ram_be),
       .addr(ram_addr),
       .wdata(ram_wdata),
-      .rdata(ram_rdata)
+      .rdata(ram_rdata),
+      .imem_req(imem_ram_hit),
+      .imem_addr(ram_imem_addr),
+      .imem_rdata(ram_imem_rdata)
   );
 
   gpio_mmio u_gpio_mmio (
@@ -170,7 +187,7 @@ module rv32i_soc #(
       .ROM_FILE(ROM_FILE)
   ) u_rom (
       .addr (imem_addr),
-      .rdata(imem_rdata)
+      .rdata(rom_imem_rdata)
   );
 
   simple_rom #(

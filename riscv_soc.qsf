@@ -23,6 +23,7 @@ set_global_assignment -name VERILOG_FILE src/core/rv32i_core.v
 set_global_assignment -name VERILOG_FILE src/soc/gpio_mmio.v
 set_global_assignment -name VERILOG_FILE src/soc/rv32i_soc.v
 set_global_assignment -name VERILOG_FILE src/soc/simple_bus.v
+set_global_assignment -name VERILOG_FILE src/soc/simple_dual_port_ram.v
 set_global_assignment -name VERILOG_FILE src/soc/simple_ram.v
 set_global_assignment -name VERILOG_FILE src/soc/simple_rom.v
 set_global_assignment -name VERILOG_FILE src/soc/spi_master_mmio.v

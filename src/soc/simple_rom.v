@@ -16,7 +16,7 @@ module simple_rom #(
   reg [31:0] rom[0:ROM_WORDS-1];
 
   // 这个 initial 块可以被综合, Quartus 会把 hex 内容整合进 ROM.
-  // 固件 hex 固定补齐到 ROM_WORDS 个 word, 这样综合和仿真看到的 ROM 内容一致.
+  // 固件 hex 只需要写实际 word, 未写到的地址不要作为稳定内容依赖.
   initial begin
     $readmemh(ROM_FILE, rom);
   end
