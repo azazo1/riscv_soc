@@ -3,10 +3,32 @@
 module rv32i_soc_vlg_tst;
   reg clk;
   reg rst_n;
+  reg [9:0] sw;
+  reg [3:0] key;
+  wire [9:0] ledr;
+  wire [6:0] hex0;
+  wire [6:0] hex1;
+  wire [6:0] hex2;
+  wire [6:0] hex3;
+  wire [6:0] hex4;
+  wire [6:0] hex5;
+  wire [6:0] hex6;
+  wire [6:0] hex7;
 
   rv32i_soc dut (
       .clk(clk),
-      .rst_n(rst_n)
+      .rst_n(rst_n),
+      .sw(sw),
+      .key(key),
+      .ledr(ledr),
+      .hex0(hex0),
+      .hex1(hex1),
+      .hex2(hex2),
+      .hex3(hex3),
+      .hex4(hex4),
+      .hex5(hex5),
+      .hex6(hex6),
+      .hex7(hex7)
   );
 
   initial begin
@@ -28,6 +50,8 @@ module rv32i_soc_vlg_tst;
 
   initial begin
     rst_n = 1'b1;
+    sw = 10'b0;
+    key = 4'b1111;
     #1;
     rst_n = 1'b0;
     #20;

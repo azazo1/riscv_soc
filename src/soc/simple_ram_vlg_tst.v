@@ -2,6 +2,7 @@
 
 module simple_ram_vlg_tst;
   reg clk;
+  reg rst_n;
   reg req;
   reg we;
   reg [3:0] be;
@@ -11,6 +12,7 @@ module simple_ram_vlg_tst;
 
   simple_ram dut (
       .clk(clk),
+      .rst_n(rst_n),
       .req(req),
       .we(we),
       .be(be),
@@ -59,12 +61,15 @@ module simple_ram_vlg_tst;
   endtask
 
   initial begin
+    rst_n = 1'b0;
     req = 1'b0;
     we = 1'b0;
     be = 4'b0000;
     addr = 32'b0;
     wdata = 32'b0;
 
+    repeat (2) @(posedge clk);
+    rst_n = 1'b1;
     #1;
 
     write_word(32'h0000_0000, 32'h1122_3344, 4'b1111);

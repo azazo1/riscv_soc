@@ -3,6 +3,7 @@
 // 简单的 RAM, 用于存储数据
 module simple_ram (
     input wire clk,
+    input wire rst_n,
     input wire req,
     input wire we,
     input wire [3:0] be,
@@ -24,8 +25,13 @@ module simple_ram (
   end
 
   // 写入 时序逻辑 (同步)
-  always @(posedge clk) begin
-    if (req && we) begin
+  integer i;
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      for (i = 0; i < 256; i = i + 1) begin  // 清空 ram
+        ram_data[i] <= 0;
+      end
+    end else if (req && we) begin
       if (be[0]) begin
         ram_data[word_addr][7:0] <= wdata[7:0];
       end
