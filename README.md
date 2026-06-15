@@ -9,20 +9,15 @@ VGA 图形能力待支持.
 ### GPIO
 
 GPIO1 区域的 40 个 pins 中, 从上到下的第 6 行左边是 VCC, 右边是 GND.
-
 然后左上角是 `GPIO1[0]`.
-
-![](docs/gpio1-vcc-gnd.png)
 
 GPIO0 同理.
 
 其他 GPIO0 GPIO1 引脚可以看这张图:
 
-![](docs/gpio0-1.png)
+![](docs/gpio0-1-40-pin-de1-soc.png)
 
-> 好像这张图不太一样.
-
-来源: <https://www-ug.eecg.utoronto.ca/desl/nios_devices_SoC/dev_pit.html>
+来源: <http://www-ug.eecg.toronto.edu/msl/handouts/40pinDE1.pdf>
 
 ## 环境准备
 
