@@ -1,0 +1,8 @@
+# Quartus Prime Project File
+
+QUARTUS_VERSION = "17.1"
+DATE = "June 15, 2026"
+
+# Revisions
+
+PROJECT_REVISION = "riscv_soc"

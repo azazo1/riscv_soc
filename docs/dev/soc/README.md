@@ -137,6 +137,10 @@ HEX 寄存器按 byte 拆分. 例如 `HEX_LOW` 中:
 
 需要注意的是, 如果使用现有 QSF, 端口名字必须和 top module 一致. 例如 QSF 中写的是 `CLOCK_50`, 但 Verilog top 端口叫 `clk`, 那么 QSF 也要约束到 `clk`, 或者把 wrapper 端口改名为 `CLOCK_50`.
 
+当前项目的 `riscv_soc.qsf` 约束到 `de1_soc_top` 的小写端口名. 参考 DE1-SoC SDRAM 工程只提供 HEX0 到 HEX5 的板载管脚, `Selfsale` 工程也只有 HEX0 到 HEX5. `Selfsale` 中的 `cs[3:0]` 是 virtual pin, 不能当作真实位选管脚参考. 因此 `hex6` 和 `hex7` 暂时作为 virtual pin. 如果后续接外部 8 位数码管, 需要把 `hex6` 和 `hex7` 改成实际 GPIO 管脚.
+
+这两个参考工程的数码管端口都是 `[6:0]`, 没有 `dp` 或 8 bit 段选. 当前 SoC 的 HEX MMIO 仍然按每个 digit 占 8 bit 排布, 但 bit 7 只是保留位, 不会连接到小数点.
+
 ## 开发步骤
 
 已经完成的阶段:
