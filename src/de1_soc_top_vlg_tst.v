@@ -11,6 +11,15 @@ module de1_soc_top_vlg_tst;
   wire [6:0] hex3;
   wire [6:0] hex4;
   wire [6:0] hex5;
+  wire [35:0] gpio0;
+  wire [35:0] gpio1;
+  reg [35:0] gpio0_drive;
+  reg [35:0] gpio1_drive;
+  reg gpio0_drive_en;
+  reg gpio1_drive_en;
+
+  assign gpio0 = gpio0_drive_en ? gpio0_drive : 36'bz;
+  assign gpio1 = gpio1_drive_en ? gpio1_drive : 36'bz;
 
   de1_soc_top dut (
       .clk(clk),
@@ -22,7 +31,9 @@ module de1_soc_top_vlg_tst;
       .hex2(hex2),
       .hex3(hex3),
       .hex4(hex4),
-      .hex5(hex5)
+      .hex5(hex5),
+      .gpio0(gpio0),
+      .gpio1(gpio1)
   );
 
   initial begin
@@ -45,6 +56,10 @@ module de1_soc_top_vlg_tst;
   initial begin
     sw = 10'h355;
     key = 4'b1111;
+    gpio0_drive = 36'h0;
+    gpio1_drive = 36'h0;
+    gpio0_drive_en = 1'b0;
+    gpio1_drive_en = 1'b0;
 
     #1;
     #20;
@@ -62,10 +77,12 @@ module de1_soc_top_vlg_tst;
     expect_value(dut.u_soc.u_ram.ram_data[32], 32'h1234_5678, 32'd7);
     expect_value({1'b0, hex3, 1'b0, hex2, 1'b0, hex1, 1'b0, hex0}, 32'h7f7f_7f40, 32'd8);
     expect_value({16'b0, 1'b0, hex5, 1'b0, hex4}, 32'h0000_7f7f, 32'd9);
+    expect_value(dut.gpio0_oe[31:0], 32'h0000_0000, 32'd10);
+    expect_value(dut.gpio1_oe[31:0], 32'h0000_0000, 32'd11);
 
     sw[9] = 1'b1;  // SW9=1 时 PC 回到 RESET_PC.
     #10;
-    expect_value(dut.u_soc.u_core.u_pc_reg.pc, 32'h0000_0000, 32'd10);
+    expect_value(dut.u_soc.u_core.u_pc_reg.pc, 32'h0000_0000, 32'd12);
 
     $display("de1_soc_top test passed");
     $finish;

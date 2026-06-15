@@ -10,7 +10,7 @@
 - 指令从 `simple_rom` 读取, 暂时不走 data bus.
 - 数据读写从 core 发出, 先进入 `simple_bus`.
 - `simple_bus` 按地址高位选择 RAM 或 GPIO MMIO.
-- `gpio_mmio` 提供 LEDR, SW, KEY, HEX0..HEX5 的寄存器访问.
+- `gpio_mmio` 提供 LEDR, SW, KEY, HEX0..HEX5, GPIO_0, GPIO_1 的寄存器访问.
 - 暂时没有 UART, timer, interrupt, SDRAM.
 - 暂时没有 `ready`/`valid` 等多周期握手.
 
@@ -102,6 +102,18 @@ bus 只做大范围译码, 设备内部再判断精确寄存器窗口. 当前 GP
 | `0x0100_0008` | `KEY` | R | `[3:0]` | 读取 4 个按键 |
 | `0x0100_000c` | `HEX_LOW` | R/W | 4 bytes, 每 byte 低 7 bit | 控制 HEX0 到 HEX3 |
 | `0x0100_0010` | `HEX_HIGH` | R/W | 低 2 bytes, 每 byte 低 7 bit | 控制 HEX4 到 HEX5 |
+| `0x0100_0020` | `GPIO0_IN_LOW` | R | `[31:0]` | 读取 GPIO_0 低 32 bit |
+| `0x0100_0024` | `GPIO0_IN_HIGH` | R | `[3:0]` | 读取 GPIO_0 高 4 bit |
+| `0x0100_0028` | `GPIO0_OUT_LOW` | R/W | `[31:0]` | 设置 GPIO_0 输出值低 32 bit |
+| `0x0100_002c` | `GPIO0_OUT_HIGH` | R/W | `[3:0]` | 设置 GPIO_0 输出值高 4 bit |
+| `0x0100_0030` | `GPIO0_OE_LOW` | R/W | `[31:0]` | 设置 GPIO_0 输出使能低 32 bit |
+| `0x0100_0034` | `GPIO0_OE_HIGH` | R/W | `[3:0]` | 设置 GPIO_0 输出使能高 4 bit |
+| `0x0100_0040` | `GPIO1_IN_LOW` | R | `[31:0]` | 读取 GPIO_1 低 32 bit |
+| `0x0100_0044` | `GPIO1_IN_HIGH` | R | `[3:0]` | 读取 GPIO_1 高 4 bit |
+| `0x0100_0048` | `GPIO1_OUT_LOW` | R/W | `[31:0]` | 设置 GPIO_1 输出值低 32 bit |
+| `0x0100_004c` | `GPIO1_OUT_HIGH` | R/W | `[3:0]` | 设置 GPIO_1 输出值高 4 bit |
+| `0x0100_0050` | `GPIO1_OE_LOW` | R/W | `[31:0]` | 设置 GPIO_1 输出使能低 32 bit |
+| `0x0100_0054` | `GPIO1_OE_HIGH` | R/W | `[3:0]` | 设置 GPIO_1 输出使能高 4 bit |
 
 HEX 寄存器按 byte 拆分. 例如 `HEX_LOW` 中:
 
@@ -111,6 +123,14 @@ HEX 寄存器按 byte 拆分. 例如 `HEX_LOW` 中:
 - `wdata[30:24]` 写入 `hex3`.
 
 每个 HEX 端口只有 7 bit 段选, 因此每个 byte 的 bit 7 暂时保留. 当前段选默认按低电平点亮理解, reset 后输出 `7'h7f`.
+
+GPIO_0 和 GPIO_1 每组在 Verilog 中暴露 `36 bit` FPGA IO:
+
+- `IN` 寄存器只反映外部输入.
+- `OUT` 寄存器保存输出值.
+- `OE` 寄存器保存输出使能, `1` 表示 FPGA 驱动该 bit, `0` 表示该 bit 保持高阻输入.
+
+DE1-SoC 的 GPIO 排针一般叫 40 pin, 但其中包含 VCC 和 GND. 当前 QSF 只约束到 FPGA 的 `gpio0[35:0]` 和 `gpio1[35:0]`, 所以 SoC 接口也保持 `36 bit`.
 
 ### `rv32i_soc`
 
@@ -132,6 +152,12 @@ HEX 寄存器按 byte 拆分. 例如 `HEX_LOW` 中:
 - `key[3:0]`
 - `ledr[9:0]`
 - `hex0` 到 `hex5`
+- `gpio0_in[35:0]`
+- `gpio0_out[35:0]`
+- `gpio0_oe[35:0]`
+- `gpio1_in[35:0]`
+- `gpio1_out[35:0]`
+- `gpio1_oe[35:0]`
 
 如果只想快速上板, 可以直接把 `rv32i_soc` 当 Quartus top, 然后在 QSF 中把这些端口映射到真实管脚. 但长期建议保留一个板级 top.
 
@@ -143,6 +169,8 @@ HEX 寄存器按 byte 拆分. 例如 `HEX_LOW` 中:
 - 内部只实例化 `rv32i_soc`.
 - 当前用 `sw[9]` 作为板级复位, SW9=1 时复位, SW9=0 时运行.
 - `key[3:0]` 同时传给 SoC 的 GPIO KEY 输入.
+- 负责把 `gpio0_out` 和 `gpio0_oe` 转成 `gpio0` 三态端口.
+- 负责把 `gpio1_out` 和 `gpio1_oe` 转成 `gpio1` 三态端口.
 
 这种写法的优点是 SoC 逻辑保持通用, 板级端口名, reset 来源, 后续 PLL, reset sync, SDRAM 引脚都可以放在 wrapper 层.
 

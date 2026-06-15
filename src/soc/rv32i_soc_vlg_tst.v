@@ -12,6 +12,12 @@ module rv32i_soc_vlg_tst;
   wire [6:0] hex3;
   wire [6:0] hex4;
   wire [6:0] hex5;
+  reg [35:0] gpio0_in;
+  reg [35:0] gpio1_in;
+  wire [35:0] gpio0_out;
+  wire [35:0] gpio0_oe;
+  wire [35:0] gpio1_out;
+  wire [35:0] gpio1_oe;
 
   rv32i_soc dut (
       .clk(clk),
@@ -24,7 +30,13 @@ module rv32i_soc_vlg_tst;
       .hex2(hex2),
       .hex3(hex3),
       .hex4(hex4),
-      .hex5(hex5)
+      .hex5(hex5),
+      .gpio0_in(gpio0_in),
+      .gpio1_in(gpio1_in),
+      .gpio0_out(gpio0_out),
+      .gpio0_oe(gpio0_oe),
+      .gpio1_out(gpio1_out),
+      .gpio1_oe(gpio1_oe)
   );
 
   initial begin
@@ -48,6 +60,8 @@ module rv32i_soc_vlg_tst;
     rst_n = 1'b1;
     sw = 10'h2a5;
     key = 4'b1111;
+    gpio0_in = 36'h0;
+    gpio1_in = 36'h0;
     #1;
     rst_n = 1'b0;
     #20;
@@ -62,6 +76,10 @@ module rv32i_soc_vlg_tst;
     expect_value(dut.u_ram.ram_data[32], 32'h1234_5678, 32'd4);
     expect_value({1'b0, hex3, 1'b0, hex2, 1'b0, hex1, 1'b0, hex0}, 32'h7f7f_7f40, 32'd5);
     expect_value({16'b0, 1'b0, hex5, 1'b0, hex4}, 32'h0000_7f7f, 32'd6);
+    expect_value(gpio0_out[31:0], 32'h0000_0000, 32'd7);
+    expect_value(gpio0_oe[31:0], 32'h0000_0000, 32'd8);
+    expect_value(gpio1_out[31:0], 32'h0000_0000, 32'd9);
+    expect_value(gpio1_oe[31:0], 32'h0000_0000, 32'd10);
 
     $display("rv32i_soc test passed");
     $finish;

@@ -16,7 +16,15 @@ module rv32i_soc #(
     output wire [6:0] hex2,
     output wire [6:0] hex3,
     output wire [6:0] hex4,
-    output wire [6:0] hex5
+    output wire [6:0] hex5,
+
+    // de1-soc gpio header, only FPGA IO pins are exposed here.
+    input wire [35:0] gpio0_in,
+    input wire [35:0] gpio1_in,
+    output wire [35:0] gpio0_out,
+    output wire [35:0] gpio0_oe,
+    output wire [35:0] gpio1_out,
+    output wire [35:0] gpio1_oe
 );
 
   wire dmem_req;
@@ -73,7 +81,13 @@ module rv32i_soc #(
       .hex2(hex2),
       .hex3(hex3),
       .hex4(hex4),
-      .hex5(hex5)
+      .hex5(hex5),
+      .gpio0_in(gpio0_in),
+      .gpio1_in(gpio1_in),
+      .gpio0_out(gpio0_out),
+      .gpio0_oe(gpio0_oe),
+      .gpio1_out(gpio1_out),
+      .gpio1_oe(gpio1_oe)
   );
 
   simple_rom u_rom (

@@ -37,6 +37,12 @@ module rv32i_soc_mmio_vlg_tst;
   wire [6:0] hex3;
   wire [6:0] hex4;
   wire [6:0] hex5;
+  reg [35:0] gpio0_in;
+  reg [35:0] gpio1_in;
+  wire [35:0] gpio0_out;
+  wire [35:0] gpio0_oe;
+  wire [35:0] gpio1_out;
+  wire [35:0] gpio1_oe;
 
   localparam OPCODE_LUI = 7'b0110111;
   localparam OPCODE_OP_IMM = 7'b0010011;
@@ -100,6 +106,8 @@ module rv32i_soc_mmio_vlg_tst;
       .wdata(gpio_wdata),
       .sw(sw),
       .key(key),
+      .gpio0_in(gpio0_in),
+      .gpio1_in(gpio1_in),
       .rdata(gpio_rdata),
       .ledr(ledr),
       .hex0(hex0),
@@ -107,7 +115,11 @@ module rv32i_soc_mmio_vlg_tst;
       .hex2(hex2),
       .hex3(hex3),
       .hex4(hex4),
-      .hex5(hex5)
+      .hex5(hex5),
+      .gpio0_out(gpio0_out),
+      .gpio0_oe(gpio0_oe),
+      .gpio1_out(gpio1_out),
+      .gpio1_oe(gpio1_oe)
   );
 
   initial begin
@@ -168,7 +180,27 @@ module rv32i_soc_mmio_vlg_tst;
       32'h0000_0020: imem_rdata = instr_u(20'h00001, 5'd6, OPCODE_LUI); // lui x6, 0x00001, 准备 HEX_HIGH 段码高位
       32'h0000_0024: imem_rdata = instr_i(12'h219, 5'd6, 3'b000, 5'd6, OPCODE_OP_IMM); // addi x6, x6, 0x219, x6 = 0x0000_1219
       32'h0000_0028: imem_rdata = instr_s(12'd16, 5'd6, 5'd1, 3'b010); // sw x6, 16(x1), 写 HEX4 到 HEX5
-      32'h0000_002c: imem_rdata = instr_b(13'd0, 5'd0, 5'd0, 3'b000); // beq x0, x0, 0, 原地循环停住
+      32'h0000_002c: imem_rdata = instr_i(12'd32, 5'd1, 3'b010, 5'd7, OPCODE_LOAD); // lw x7, 32(x1), 读取 GPIO0_IN_LOW
+      32'h0000_0030: imem_rdata = instr_i(12'd36, 5'd1, 3'b010, 5'd8, OPCODE_LOAD); // lw x8, 36(x1), 读取 GPIO0_IN_HIGH
+      32'h0000_0034: imem_rdata = instr_i(12'h5a5, 5'd0, 3'b000, 5'd9, OPCODE_OP_IMM); // addi x9, x0, 0x5a5, 准备 GPIO0 输出值
+      32'h0000_0038: imem_rdata = instr_s(12'd40, 5'd9, 5'd1, 3'b010); // sw x9, 40(x1), 写 GPIO0_OUT_LOW
+      32'h0000_003c: imem_rdata = instr_i(12'd10, 5'd0, 3'b000, 5'd10, OPCODE_OP_IMM); // addi x10, x0, 10, 准备 GPIO0 高 4 bit 输出值
+      32'h0000_0040: imem_rdata = instr_s(12'd44, 5'd10, 5'd1, 3'b010); // sw x10, 44(x1), 写 GPIO0_OUT_HIGH
+      32'h0000_0044: imem_rdata = instr_i(12'hfff, 5'd0, 3'b000, 5'd11, OPCODE_OP_IMM); // addi x11, x0, -1, 准备 GPIO0_OE_LOW
+      32'h0000_0048: imem_rdata = instr_s(12'd48, 5'd11, 5'd1, 3'b010); // sw x11, 48(x1), 写 GPIO0_OE_LOW
+      32'h0000_004c: imem_rdata = instr_i(12'd3, 5'd0, 3'b000, 5'd12, OPCODE_OP_IMM); // addi x12, x0, 3, 准备 GPIO0_OE_HIGH
+      32'h0000_0050: imem_rdata = instr_s(12'd52, 5'd12, 5'd1, 3'b010); // sw x12, 52(x1), 写 GPIO0_OE_HIGH
+      32'h0000_0054: imem_rdata = instr_i(12'd64, 5'd1, 3'b010, 5'd13, OPCODE_LOAD); // lw x13, 64(x1), 读取 GPIO1_IN_LOW
+      32'h0000_0058: imem_rdata = instr_i(12'd68, 5'd1, 3'b010, 5'd14, OPCODE_LOAD); // lw x14, 68(x1), 读取 GPIO1_IN_HIGH
+      32'h0000_005c: imem_rdata = instr_i(12'h333, 5'd0, 3'b000, 5'd15, OPCODE_OP_IMM); // addi x15, x0, 0x333, 准备 GPIO1 输出值
+      32'h0000_0060: imem_rdata = instr_s(12'd72, 5'd15, 5'd1, 3'b010); // sw x15, 72(x1), 写 GPIO1_OUT_LOW
+      32'h0000_0064: imem_rdata = instr_i(12'd5, 5'd0, 3'b000, 5'd16, OPCODE_OP_IMM); // addi x16, x0, 5, 准备 GPIO1 高 4 bit 输出值
+      32'h0000_0068: imem_rdata = instr_s(12'd76, 5'd16, 5'd1, 3'b010); // sw x16, 76(x1), 写 GPIO1_OUT_HIGH
+      32'h0000_006c: imem_rdata = instr_i(12'h0f0, 5'd0, 3'b000, 5'd17, OPCODE_OP_IMM); // addi x17, x0, 0x0f0, 准备 GPIO1_OE_LOW
+      32'h0000_0070: imem_rdata = instr_s(12'd80, 5'd17, 5'd1, 3'b010); // sw x17, 80(x1), 写 GPIO1_OE_LOW
+      32'h0000_0074: imem_rdata = instr_i(12'd6, 5'd0, 3'b000, 5'd18, OPCODE_OP_IMM); // addi x18, x0, 6, 准备 GPIO1_OE_HIGH
+      32'h0000_0078: imem_rdata = instr_s(12'd84, 5'd18, 5'd1, 3'b010); // sw x18, 84(x1), 写 GPIO1_OE_HIGH
+      32'h0000_007c: imem_rdata = instr_b(13'd0, 5'd0, 5'd0, 3'b000); // beq x0, x0, 0, 原地循环停住
       default: imem_rdata = 32'h0000_0013;
     endcase
   end
@@ -189,13 +221,15 @@ module rv32i_soc_mmio_vlg_tst;
     rst_n = 1'b1;
     sw = 10'h2a5;
     key = 4'ha;
+    gpio0_in = 36'hf_1234_5678;
+    gpio1_in = 36'h5_dead_beef;
 
     #1;
     rst_n = 1'b0;
     #20;
     rst_n = 1'b1;
 
-    repeat (24) @(posedge clk);
+    repeat (60) @(posedge clk);
     #1;
 
     expect_value({22'b0, ledr}, 32'h0000_0155, 32'd1);
@@ -204,6 +238,18 @@ module rv32i_soc_mmio_vlg_tst;
     expect_value({1'b0, hex3, 1'b0, hex2, 1'b0, hex1, 1'b0, hex0}, 32'h3f06_5b4f, 32'd4);
     expect_value({16'b0, 1'b0, hex5, 1'b0, hex4}, 32'h0000_1219, 32'd5);
     expect_value(u_ram.ram_data[0], 32'h0000_0000, 32'd6);
+    expect_value(u_core.u_regfile.regs[7], 32'h1234_5678, 32'd7);
+    expect_value(u_core.u_regfile.regs[8], 32'h0000_000f, 32'd8);
+    expect_value(gpio0_out[31:0], 32'h0000_05a5, 32'd9);
+    expect_value({28'b0, gpio0_out[35:32]}, 32'h0000_000a, 32'd10);
+    expect_value(gpio0_oe[31:0], 32'hffff_ffff, 32'd11);
+    expect_value({28'b0, gpio0_oe[35:32]}, 32'h0000_0003, 32'd12);
+    expect_value(u_core.u_regfile.regs[13], 32'hdead_beef, 32'd13);
+    expect_value(u_core.u_regfile.regs[14], 32'h0000_0005, 32'd14);
+    expect_value(gpio1_out[31:0], 32'h0000_0333, 32'd15);
+    expect_value({28'b0, gpio1_out[35:32]}, 32'h0000_0005, 32'd16);
+    expect_value(gpio1_oe[31:0], 32'h0000_00f0, 32'd17);
+    expect_value({28'b0, gpio1_oe[35:32]}, 32'h0000_0006, 32'd18);
 
     $display("rv32i_soc_mmio test passed");
     $finish;

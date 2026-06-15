@@ -12,8 +12,24 @@ module de1_soc_top (
     output wire [6:0] hex2,
     output wire [6:0] hex3,
     output wire [6:0] hex4,
-    output wire [6:0] hex5
+    output wire [6:0] hex5,
+
+    inout wire [35:0] gpio0,
+    inout wire [35:0] gpio1
 );
+
+  wire [35:0] gpio0_out;
+  wire [35:0] gpio0_oe;
+  wire [35:0] gpio1_out;
+  wire [35:0] gpio1_oe;
+
+  genvar i;
+  generate
+    for (i = 0; i < 36; i = i + 1) begin : gen_gpio
+      assign gpio0[i] = gpio0_oe[i] ? gpio0_out[i] : 1'bz;
+      assign gpio1[i] = gpio1_oe[i] ? gpio1_out[i] : 1'bz;
+    end
+  endgenerate
 
   rv32i_soc u_soc (
       .clk(clk),
@@ -26,7 +42,13 @@ module de1_soc_top (
       .hex2(hex2),
       .hex3(hex3),
       .hex4(hex4),
-      .hex5(hex5)
+      .hex5(hex5),
+      .gpio0_in(gpio0),
+      .gpio1_in(gpio1),
+      .gpio0_out(gpio0_out),
+      .gpio0_oe(gpio0_oe),
+      .gpio1_out(gpio1_out),
+      .gpio1_oe(gpio1_oe)
   );
 
 endmodule
