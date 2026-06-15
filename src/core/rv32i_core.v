@@ -144,12 +144,12 @@ module rv32i_core #(
       .instr  (imem_rdata),
       .imm_sel(imm_sel),
 
-      .imm(imm),
-      .imm_i(),  // ???
-      .imm_s(),  // ???
-      .imm_b(),  // ???
-      .imm_u(),  // ???
-      .imm_j()  // ???
+      .imm  (imm),
+      .imm_i(),
+      .imm_s(),
+      .imm_b(),
+      .imm_u(),
+      .imm_j()
   );
 
   alu u_alu (
@@ -174,10 +174,10 @@ module rv32i_core #(
 
       .store_be(dmem_be),
       .store_wdata(dmem_wdata),
-      .store_misaligned(),  // ???
+      .store_misaligned(),  // todo ???
 
       .load_data(load_data),
-      .load_misaligned()  // ???
+      .load_misaligned()  // todo ???
   );
 
 endmodule
