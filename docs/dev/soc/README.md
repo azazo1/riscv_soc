@@ -48,12 +48,13 @@ rv32i_core
 
 `firmware/test/simple_rom.hex` 只给 `simple_rom_vlg_tst` 使用, 不作为上板程序.
 
-当前上板 demo 的行为:
+当前上板自检固件的行为:
 
-- 初始化 HEX0 到 HEX5, 让数码管显示固定内容.
-- 循环读取 SW, 并把 `SW[9:0]` 镜像到 `LEDR[9:0]`.
+- 运行 ALU, branch, RAM load/store, MMIO read/write 的最小自检.
+- 全部通过时 `LEDR[3:0]` 显示 `1111`, `HEX0` 显示 `0`, `HEX1` 到 `HEX5` 熄灭.
+- 失败时 `LEDR` 显示错误码, `HEX0` 显示错误码.
 
-这样上板后只要拨动开关, 就能直接看到 LED 变化. 数码管则用于确认 ROM 取指和 MMIO 写入都已经跑通.
+这样上板后可以不用串口, 直接通过 LED 和 HEX 判断 ROM 取指, CPU 执行, RAM 访问和 MMIO 访问是否跑通.
 
 ### `simple_ram`
 

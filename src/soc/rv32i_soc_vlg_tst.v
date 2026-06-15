@@ -53,13 +53,15 @@ module rv32i_soc_vlg_tst;
     #20;
     rst_n = 1'b1;
 
-    repeat (30) @(posedge clk);
+    repeat (120) @(posedge clk);
     #1;
 
-    expect_value({22'b0, ledr}, 32'h0000_02a5, 32'd1);
-    expect_value(dut.u_core.u_regfile.regs[4], 32'h0000_02a5, 32'd2);
-    expect_value({1'b0, hex3, 1'b0, hex2, 1'b0, hex1, 1'b0, hex0}, 32'h3024_7940, 32'd3);
-    expect_value({16'b0, 1'b0, hex5, 1'b0, hex4}, 32'h0000_1219, 32'd4);
+    expect_value({22'b0, ledr}, 32'h0000_000f, 32'd1);
+    expect_value(dut.u_core.u_regfile.regs[30], 32'h0000_0000, 32'd2);
+    expect_value(dut.u_core.u_regfile.regs[31], 32'h0000_000f, 32'd3);
+    expect_value(dut.u_ram.ram_data[32], 32'h1234_5678, 32'd4);
+    expect_value({1'b0, hex3, 1'b0, hex2, 1'b0, hex1, 1'b0, hex0}, 32'h7f7f_7f40, 32'd5);
+    expect_value({16'b0, 1'b0, hex5, 1'b0, hex4}, 32'h0000_7f7f, 32'd6);
 
     $display("rv32i_soc test passed");
     $finish;
