@@ -75,6 +75,11 @@ module rv32i_soc_uart_rom_vlg_tst;
         @(posedge clk);
       end
 
+      if (ledr[9] !== 1'b1) begin
+        $display("check %0d failed: LEDR[9] should be high while uart sends", check_id);
+        $fatal;
+      end
+
       repeat (TEST_CLKS_PER_BIT) @(posedge clk);
       for (bit_index = 0; bit_index < 8; bit_index = bit_index + 1) begin
         actual[bit_index] = uart_tx_pin;
@@ -95,6 +100,23 @@ module rv32i_soc_uart_rom_vlg_tst;
     end
   endtask
 
+  task wait_led9_low;
+    input [31:0] check_id;
+    integer wait_count;
+    begin
+      wait_count = 0;
+      while (ledr[9] !== 1'b0 && wait_count < 32) begin
+        wait_count = wait_count + 1;
+        @(posedge clk);
+      end
+
+      if (ledr[9] !== 1'b0) begin
+        $display("check %0d failed: LEDR[9] should return low after uart sends", check_id);
+        $fatal;
+      end
+    end
+  endtask
+
   initial begin
     rst_n = 1'b1;
     sw = 10'h000;
@@ -109,7 +131,15 @@ module rv32i_soc_uart_rom_vlg_tst;
 
     expect_uart_byte(8'h52, 32'd1);
     expect_uart_byte(8'h0a, 32'd2);
-    expect_value({22'b0, ledr}, 32'h0000_0001, 32'd3);
+    wait_led9_low(32'd3);
+    expect_value({22'b0, ledr}, 32'h0000_0001, 32'd4);
+
+    key = 4'b1110;
+    expect_uart_byte(8'h4b, 32'd5);
+    expect_uart_byte(8'h65, 32'd6);
+    expect_uart_byte(8'h0a, 32'd7);
+    wait_led9_low(32'd8);
+    expect_value({22'b0, ledr}, 32'h0000_0003, 32'd9);
 
     $display("rv32i_soc_uart_rom test passed");
     $finish;

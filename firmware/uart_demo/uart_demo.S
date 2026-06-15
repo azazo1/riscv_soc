@@ -1,8 +1,9 @@
 # uart_demo.S -- UART board test program
 # 功能:
 #   1. 启动后发送 "R\n", 方便确认 reset 后程序已经执行.
-#   2. 每约 1 秒发送 ".\n", 方便确认 UART 持续工作.
-#   3. KEY 状态变化时发送 "Kx\n", x 是 KEY[3:0] 的十六进制值.
+#   2. 发送字节时 LEDR[9] 亮起, 发送完成后熄灭.
+#   3. LEDR[0] 启动后常亮.
+#   4. KEY 状态变化时 LEDR[1] 改变亮灭, 并发送 "Kx\n".
 #
 # 说明:
 #   DE1-SoC 的 KEY 通常是低有效, 未按下时读到 0xf.
@@ -19,8 +20,8 @@
 _start:
     lui  x1, 0x01000          # x1 = MMIO base 0x0100_0000
 
-    addi x2, x0, 1
-    sw   x2, 0(x1)            # LEDR[0] = 1, 表示程序已经启动.
+    addi x2, x0, 1            # x2 保存 LEDR 当前状态, LEDR[0] 表示程序已经启动.
+    sw   x2, 0(x1)
 
     lw   x8, 8(x1)            # x8 保存上一次 KEY[3:0] 状态.
     andi x8, x8, 15
@@ -31,27 +32,18 @@ _start:
     jal  x7, uart_putc
 
 main_loop:
-    addi x20, x0, 100         # 100 * 10 ms, 约等于 1 秒.
-
-one_second_loop:
-    jal  x9, delay_10ms
+    jal  x9, delay_10ms       # 简单延时, 降低按键抖动造成的重复触发.
 
     lw   x11, 8(x1)           # 读取 KEY.
     andi x11, x11, 15         # 只保留 KEY[3:0].
     beq  x11, x8, no_key_event
 
     add  x8, x0, x11          # 状态变化后更新旧值.
+    xori x2, x2, 2            # 每次 KEY 变化都切换 LEDR[1].
+    sw   x2, 0(x1)
     jal  x9, send_key_event
 
 no_key_event:
-    addi x20, x20, -1
-    bne  x20, x0, one_second_loop
-
-    addi x5, x0, 46           # '.'
-    jal  x7, uart_putc
-    addi x5, x0, 10           # '\n'
-    jal  x7, uart_putc
-
     beq  x0, x0, main_loop
 
 uart_putc:
@@ -59,7 +51,22 @@ uart_putc:
     andi x6, x6, 1
     beq  x6, x0, uart_putc
 
+    ori  x2, x2, 512          # LEDR[9] = 1, 表示 UART 正在发送.
+    sw   x2, 0(x1)
     sw   x5, 256(x1)          # UART_TXDATA, 只使用低 8 bit.
+
+uart_wait_start:
+    lw   x6, 260(x1)          # 等待 tx_busy 变成 1, 确认发送已经开始.
+    andi x6, x6, 2
+    beq  x6, x0, uart_wait_start
+
+uart_wait_done:
+    lw   x6, 260(x1)          # tx_busy 回到 0 时, 一个字节发送完成.
+    andi x6, x6, 2
+    bne  x6, x0, uart_wait_done
+
+    andi x2, x2, -513         # LEDR[9] = 0, 保留其他 LED 状态.
+    sw   x2, 0(x1)
     jalr x0, 0(x7)
 
 send_key_event:

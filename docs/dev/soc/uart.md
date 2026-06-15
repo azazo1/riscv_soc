@@ -124,8 +124,10 @@ void uart_putc(unsigned char ch) {
 程序行为:
 
 - reset 后发送 `R\n`.
-- 每约 1 秒发送 `.\n`.
+- `LEDR[0]` 启动后常亮.
+- 发送字节时 `LEDR[9]` 亮起, 发送结束后熄灭.
 - KEY[3:0] 状态变化时发送 `Kx\n`, 其中 `x` 是 KEY[3:0] 的十六进制值.
+- 每次 KEY 状态变化时 `LEDR[1]` 切换一次亮灭.
 
 DE1-SoC 的 KEY 通常是低有效. 未按下时读到 `0xf`, KEY0 按下时常见读数是 `0xe`.
 
