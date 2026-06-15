@@ -9,6 +9,10 @@ module simple_bus_vlg_tst;
   reg [31:0] wdata;
   wire [31:0] rdata;
 
+  wire rom_req;
+  wire [31:0] rom_addr;
+  reg [31:0] rom_rdata;
+
   wire ram_req;
   wire ram_we;
   wire [3:0] ram_be;
@@ -40,6 +44,9 @@ module simple_bus_vlg_tst;
       .addr(addr),
       .wdata(wdata),
       .rdata(rdata),
+      .rom_req(rom_req),
+      .rom_addr(rom_addr),
+      .rom_rdata(rom_rdata),
       .ram_req(ram_req),
       .ram_we(ram_we),
       .ram_be(ram_be),
@@ -65,6 +72,28 @@ module simple_bus_vlg_tst;
     forever #5 clk = ~clk;
   end
 
+  task expect_rom_hit;
+    input [31:0] test_addr;
+    input [31:0] test_rom_rdata;
+    input [31:0] check_id;
+    begin
+      req = 1'b1;
+      we = 1'b0;
+      be = 4'b1111;
+      addr = test_addr;
+      wdata = 32'h0000_0000;
+      rom_rdata = test_rom_rdata;
+      #1;
+
+      if (rom_req !== 1'b1 || ram_req !== 1'b0 || gpio_req !== 1'b0 || uart_req !== 1'b0 ||
+          rom_addr !== test_addr || rdata !== test_rom_rdata) begin
+        $display("check %0d rom hit failed", check_id);
+        $display("rom_req=%b rom_addr=%h rdata=%h", rom_req, rom_addr, rdata);
+        $fatal;
+      end
+    end
+  endtask
+
   task expect_ram_hit;
     input test_we;
     input [3:0] test_be;
@@ -81,7 +110,7 @@ module simple_bus_vlg_tst;
       ram_rdata = test_ram_rdata;
       #1;
 
-      if (ram_req !== 1'b1 || gpio_req !== 1'b0 || uart_req !== 1'b0 ||
+      if (rom_req !== 1'b0 || ram_req !== 1'b1 || gpio_req !== 1'b0 || uart_req !== 1'b0 ||
           ram_we !== test_we || ram_be !== test_be ||
           ram_addr !== (test_addr - RAM_BASE) || ram_wdata !== test_wdata || rdata !== test_ram_rdata) begin
         $display("check %0d ram hit failed", check_id);
@@ -108,7 +137,7 @@ module simple_bus_vlg_tst;
       gpio_rdata = test_gpio_rdata;
       #1;
 
-      if (ram_req !== 1'b0 || gpio_req !== 1'b1 || uart_req !== 1'b0 ||
+      if (rom_req !== 1'b0 || ram_req !== 1'b0 || gpio_req !== 1'b1 || uart_req !== 1'b0 ||
           gpio_we !== test_we ||
           gpio_be !== test_be || gpio_addr !== test_addr ||
           gpio_wdata !== test_wdata || rdata !== test_gpio_rdata) begin
@@ -136,7 +165,7 @@ module simple_bus_vlg_tst;
       uart_rdata = test_uart_rdata;
       #1;
 
-      if (ram_req !== 1'b0 || gpio_req !== 1'b0 || uart_req !== 1'b1 ||
+      if (rom_req !== 1'b0 || ram_req !== 1'b0 || gpio_req !== 1'b0 || uart_req !== 1'b1 ||
           uart_we !== test_we || uart_be !== test_be ||
           uart_addr !== test_addr || uart_wdata !== test_wdata ||
           rdata !== test_uart_rdata) begin
@@ -162,8 +191,8 @@ module simple_bus_vlg_tst;
       uart_rdata = 32'h5566_aabb;
       #1;
 
-      if (ram_req !== 1'b0 || gpio_req !== 1'b0 || uart_req !== 1'b0 || rdata !== 32'b0) begin
-        $display("check %0d miss failed: ram_req=%b gpio_req=%b uart_req=%b rdata=%h", check_id, ram_req, gpio_req, uart_req, rdata);
+      if (rom_req !== 1'b0 || ram_req !== 1'b0 || gpio_req !== 1'b0 || uart_req !== 1'b0 || rdata !== 32'b0) begin
+        $display("check %0d miss failed: rom_req=%b ram_req=%b gpio_req=%b uart_req=%b rdata=%h", check_id, rom_req, ram_req, gpio_req, uart_req, rdata);
         $fatal;
       end
     end
@@ -175,28 +204,30 @@ module simple_bus_vlg_tst;
     be = 4'b0000;
     addr = 32'b0;
     wdata = 32'b0;
+    rom_rdata = 32'b0;
     ram_rdata = 32'b0;
     gpio_rdata = 32'b0;
     uart_rdata = 32'b0;
 
     #1;
 
-    expect_ram_miss(32'h0000_0000, 32'd1);
-    expect_ram_miss(32'h0000_7ffc, 32'd2);
-    expect_ram_hit(1'b0, 4'b1111, 32'h0000_8000, 32'h0000_0000, 32'h1122_3344, 32'd3);
-    expect_ram_hit(1'b1, 4'b0101, 32'h0000_800c, 32'h5566_7788, 32'h99aa_bbcc, 32'd4);
-    expect_ram_hit(1'b0, 4'b1111, 32'h0000_8400, 32'h0000_0000, 32'h1234_abcd, 32'd5);
-    expect_ram_hit(1'b0, 4'b1111, 32'h00ff_fffc, 32'h0000_0000, 32'hdead_beef, 32'd6);
+    expect_rom_hit(32'h0000_0000, 32'h1122_3344, 32'd1);
+    expect_rom_hit(32'h0000_7ffc, 32'haabb_ccdd, 32'd2);
+    expect_ram_miss(32'h0000_0000, 32'd3);
+    expect_ram_hit(1'b0, 4'b1111, 32'h0000_8000, 32'h0000_0000, 32'h1122_3344, 32'd4);
+    expect_ram_hit(1'b1, 4'b0101, 32'h0000_800c, 32'h5566_7788, 32'h99aa_bbcc, 32'd5);
+    expect_ram_hit(1'b0, 4'b1111, 32'h0000_8400, 32'h0000_0000, 32'h1234_abcd, 32'd6);
+    expect_ram_hit(1'b0, 4'b1111, 32'h00ff_fffc, 32'h0000_0000, 32'hdead_beef, 32'd7);
 
-    expect_gpio_hit(1'b0, 4'b1111, 32'h0100_0000, 32'h0000_0000, 32'h1357_2468, 32'd7);
-    expect_gpio_hit(1'b1, 4'b0011, 32'h0100_0010, 32'h0000_03ff, 32'h2468_1357, 32'd8);
+    expect_gpio_hit(1'b0, 4'b1111, 32'h0100_0000, 32'h0000_0000, 32'h1357_2468, 32'd8);
+    expect_gpio_hit(1'b1, 4'b0011, 32'h0100_0010, 32'h0000_03ff, 32'h2468_1357, 32'd9);
 
-    expect_gpio_hit(1'b0, 4'b1111, 32'h0100_00fc, 32'h0000_0000, 32'h0100_00fc, 32'd9);
-    expect_uart_hit(1'b1, 4'b1111, 32'h0100_0100, 32'h5566_7788, 32'h0000_0003, 32'd10);
-    expect_uart_hit(1'b0, 4'b1111, 32'h0100_0104, 32'h0000_0000, 32'h0000_0001, 32'd11);
+    expect_gpio_hit(1'b0, 4'b1111, 32'h0100_00fc, 32'h0000_0000, 32'h0100_00fc, 32'd10);
+    expect_uart_hit(1'b1, 4'b1111, 32'h0100_0100, 32'h5566_7788, 32'h0000_0003, 32'd11);
+    expect_uart_hit(1'b0, 4'b1111, 32'h0100_0104, 32'h0000_0000, 32'h0000_0001, 32'd12);
 
-    expect_ram_miss(32'h0100_0200, 32'd12);
-    expect_ram_miss(32'h0200_0000, 32'd13);
+    expect_ram_miss(32'h0100_0200, 32'd13);
+    expect_ram_miss(32'h0200_0000, 32'd14);
 
     req = 1'b0;
     we = 1'b1;
@@ -207,7 +238,7 @@ module simple_bus_vlg_tst;
     gpio_rdata = 32'h1122_3344;
     uart_rdata = 32'h5566_aabb;
     #1;
-    if (ram_req !== 1'b0 || gpio_req !== 1'b0 || uart_req !== 1'b0 || rdata !== 32'b0) begin
+    if (rom_req !== 1'b0 || ram_req !== 1'b0 || gpio_req !== 1'b0 || uart_req !== 1'b0 || rdata !== 32'b0) begin
       $display("idle request should not access ram");
       $fatal;
     end

@@ -9,7 +9,7 @@
 - CPU 使用 `rv32i_core`.
 - 指令从 `simple_rom` 读取, 暂时不走 data bus.
 - 数据读写从 core 发出, 先进入 `simple_bus`.
-- `simple_bus` 按地址窗口选择 RAM, GPIO MMIO 或 UART TX MMIO.
+- `simple_bus` 按地址窗口选择 ROM 只读窗口, RAM, GPIO MMIO 或 UART TX MMIO.
 - `gpio_mmio` 提供 LEDR, SW, KEY, HEX0..HEX5, GPIO_0, GPIO_1 的寄存器访问.
 - `uart_tx_mmio` 提供 UART TX 寄存器访问.
 - `uart_tx` 负责产生 UART TX 串口波形.
@@ -26,6 +26,7 @@ rv32i_core
   imem_rdata <- simple_rom.rdata
 
   dmem_*     -> simple_bus
+                   -> simple_rom (read-only)
                    -> simple_ram
                    -> gpio_mmio
                    -> uart_tx_mmio -> uart_tx
@@ -45,13 +46,16 @@ rv32i_core
 - RV32I 指令固定 4 字节, 所以可用 `addr[31:2]` 选择第几条指令.
 - ROM 内容通过 `$readmemh` 从 hex 文件初始化.
 - 默认 `ROM_FILE` 是 `firmware/board_demo/board_demo.hex`.
+- `ROM_WORDS` 默认是 8192, 对应 32 KiB.
 - `ROM_WORDS` 决定可访问的 word 数, 超出范围时返回 `32'h0000_0013`.
 
 固件源文件是 `firmware/board_demo/board_demo.S`. 运行 `just firmware-board-demo` 会重新生成 `firmware/board_demo/board_demo.hex`.
 
 UART 实机测试固件是 `firmware/uart_demo/uart_demo.S`. 运行 `just firmware-uart-demo` 会生成 `firmware/uart_demo/uart_demo.hex`.
 
-`de1_soc_top` 默认使用 UART 实机测试固件. `rv32i_soc` 默认仍使用 `board_demo.hex`, 方便本地仿真保持快速自检.
+C 实机测试固件是 `firmware/c_demo/main.c`. 运行 `just firmware-c-demo` 会生成 `firmware/c_demo/c_demo.hex`.
+
+`de1_soc_top` 默认使用 C 实机测试固件. `rv32i_soc` 默认仍使用 `board_demo.hex`, 方便本地仿真保持快速自检.
 
 `firmware/test/simple_rom.hex` 只给 `simple_rom_vlg_tst` 使用, 不作为上板程序.
 
@@ -83,6 +87,7 @@ UART 实机测试固件是 `firmware/uart_demo/uart_demo.S`. 运行 `just firmwa
 `simple_bus` 是当前的数据访问译码器.
 
 - 接收 core 的 `dmem_req`, `dmem_we`, `dmem_be`, `dmem_addr`, `dmem_wdata`.
+- 当地址落在 ROM 区间且是读访问时, 转发到只读 ROM.
 - 当地址落在 RAM 区间时, 转发到 `simple_ram`.
 - 当地址落在 GPIO MMIO 区间时, 转发到 `gpio_mmio`.
 - 当地址落在 UART MMIO 区间时, 转发到 `uart_tx_mmio`.
@@ -93,7 +98,7 @@ UART 实机测试固件是 `firmware/uart_demo/uart_demo.S`. 运行 `just firmwa
 
 | 地址范围 | 目标 | 说明 |
 | --- | --- | --- |
-| `0x0000_0000` - `0x0000_7fff` | IMEM | 取指直连 `simple_rom`, 不经过 bus |
+| `0x0000_0000` - `0x0000_7fff` | ROM | 取指直连 `simple_rom`, data bus 可只读访问常量 |
 | `0x0000_8000` - `0x00ff_ffff` | RAM | data bus 访问, 当前实际 RAM 只有 256 words |
 | `0x0100_0000` - `0x0100_00ff` | GPIO MMIO | LEDR, SW, KEY, HEX, GPIO_0, GPIO_1 |
 | `0x0100_0100` - `0x0100_01ff` | UART MMIO | UART TX |

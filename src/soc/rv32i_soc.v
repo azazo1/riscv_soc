@@ -47,6 +47,10 @@ module rv32i_soc #(
   wire [31:0] ram_wdata;
   wire [31:0] ram_rdata;
 
+  wire rom_req;
+  wire [31:0] rom_addr;
+  wire [31:0] rom_rdata;
+
   wire gpio_req;
   wire gpio_we;
   wire [3:0] gpio_be;
@@ -141,6 +145,13 @@ module rv32i_soc #(
       .rdata(imem_rdata)
   );
 
+  simple_rom #(
+      .ROM_FILE(ROM_FILE)
+  ) u_data_rom (
+      .addr (rom_addr),
+      .rdata(rom_rdata)
+  );
+
   simple_bus u_bus (
       .clk(clk),
       .req(dmem_req),
@@ -149,6 +160,10 @@ module rv32i_soc #(
       .addr(dmem_addr),
       .wdata(dmem_wdata),
       .rdata(dmem_rdata),
+
+      .rom_req(rom_req),
+      .rom_addr(rom_addr),
+      .rom_rdata(rom_rdata),
 
       .ram_req(ram_req),
       .ram_we(ram_we),

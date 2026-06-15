@@ -12,6 +12,11 @@ module simple_bus (
     input wire [31:0] wdata,
     output reg [31:0] rdata,
 
+    // 转发读请求到 rom
+    output wire rom_req,
+    output wire [31:0] rom_addr,
+    input wire [31:0] rom_rdata,
+
     // 转发请求到 ram
     output wire ram_req,
     output wire ram_we,
@@ -39,14 +44,19 @@ module simple_bus (
 
   localparam RAM_BASE = 32'h0000_8000;
   localparam RAM_LIMIT = 32'h0100_0000;
+  localparam ROM_LIMIT = 32'h0000_8000;
 
   // 暂时定一个简单的 memory map
-  // 0x0000_0000 - 0x0000_7fff IMEM, 取指直连 ROM, 不经过 data bus
+  // 0x0000_0000 - 0x0000_7fff IMEM, 取指直连 ROM, data bus 可只读访问常量
   // 0x0000_8000 - 0x00ff_ffff RAM, bus 转成本地地址后访问 simple_ram
   // 0x0100_0000 - 0x0100_00ff MMIO-GPIO, 内部具体映射查看 gpio_mmio.v
   // 0x0100_0100 - 0x0100_01ff MMIO-UART, 内部具体映射查看 uart_tx_mmio.v
 
+  wire rom_hit = (addr < ROM_LIMIT);
   wire ram_hit = (addr >= RAM_BASE) && (addr < RAM_LIMIT);
+
+  assign rom_req = req && !we && rom_hit;
+  assign rom_addr = addr;
 
   assign ram_req = req && ram_hit;
   assign ram_we = we;
@@ -67,7 +77,9 @@ module simple_bus (
   assign uart_wdata = wdata;
 
   always @(*) begin
-    if (ram_req) begin  // 不能只看 ram_hit 而不看 req, 因为 req 为 0 的时候总线应该为空闲.
+    if (rom_req) begin
+      rdata = rom_rdata;
+    end else if (ram_req) begin  // 不能只看 ram_hit 而不看 req, 因为 req 为 0 的时候总线应该为空闲.
       rdata = ram_rdata;
     end else if (gpio_req) begin
       rdata = gpio_rdata;

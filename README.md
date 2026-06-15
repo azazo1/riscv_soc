@@ -37,3 +37,9 @@ VGA 图形能力待支持.
 
 - 用途: 生成和查看上板 demo 的机器码, 例如把 `board_demo.S` 汇编成 `board_demo.hex`.
 - macOS 示例: `brew install riscv64-elf-binutils`
+
+#### Zig
+
+- 用途: 编译裸机 C 固件, 目前 `just firmware-c-demo` 使用 `zig cc` 生成 RV32I 目标文件.
+- 安装后验证: `zig version`.
+- 目标参数: 当前使用 `-target riscv32-freestanding -mcpu=baseline_rv32 -mabi=ilp32`, 对应 RV32 裸机环境, 不依赖宿主系统库.

@@ -1,0 +1,49 @@
+ENTRY(_start)
+
+MEMORY
+{
+    ROM (rx)  : ORIGIN = 0x00000000, LENGTH = 32K
+    RAM (rwx) : ORIGIN = 0x00008000, LENGTH = 1K
+}
+
+SECTIONS
+{
+    .text : {
+        KEEP(*(.text.startup))
+        *(.text*)
+    } > ROM
+
+    .rodata : {
+        *(.srodata*)
+        *(.rodata*)
+    } > ROM
+
+    .data : {
+        . = ALIGN(4);
+        _sdata = .;
+        *(.sdata*)
+        *(.data*)
+        . = ALIGN(4);
+        _edata = .;
+    } > RAM
+
+    .bss (NOLOAD) : {
+        . = ALIGN(4);
+        _sbss = .;
+        *(.sbss*)
+        *(.bss*)
+        *(COMMON)
+        . = ALIGN(4);
+        _ebss = .;
+    } > RAM
+
+    _stack_top = ORIGIN(RAM) + LENGTH(RAM);
+
+    ASSERT(_sdata == _edata, "c_demo does not support initialized data yet")
+
+    /DISCARD/ : {
+        *(.comment)
+        *(.riscv.attributes)
+        *(.eh_frame)
+    }
+}

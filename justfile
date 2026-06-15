@@ -18,7 +18,7 @@ build-verilog top:
 run-verilog top:
     @just run-verilog-with {{ top }} {{ verilog_sources }}
 
-firmware: firmware-board-demo firmware-uart-demo
+firmware: firmware-board-demo firmware-uart-demo firmware-c-demo
 
 firmware-board-demo:
     @mkdir -p {{ build_dir }}/firmware/board_demo
@@ -41,7 +41,21 @@ firmware-uart-demo:
     riscv64-elf-objcopy -O binary -j .text {{ build_dir }}/firmware/uart_demo/uart_demo.elf {{ build_dir }}/firmware/uart_demo/uart_demo.bin
     @xxd -e -g 4 -c 4 {{ build_dir }}/firmware/uart_demo/uart_demo.bin | awk '{ print $2 }' > firmware/uart_demo/uart_demo.hex
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-uart-rom test-de1-soc-top
+firmware-c-demo:
+    @mkdir -p {{ build_dir }}/firmware/c_demo
+    @# zig cc 负责编译 RV32 C 代码, freestanding 表示没有宿主系统和标准库.
+    @# baseline_rv32 默认会打开不少扩展, 后面的 -m-a-f-d-c-zicsr... 用来收紧到当前 CPU 支持的 RV32I.
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/firmware/c_demo/main.o firmware/c_demo/main.c
+    @# startup.S 用 GNU as 汇编, 明确限制为 RV32I.
+    riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/firmware/c_demo/startup.o firmware/c_demo/startup.S
+    @# linker.ld 固定 ROM=0x0000_0000, RAM=0x0000_8000, 并提供 _stack_top 等启动符号.
+    riscv64-elf-ld -m elf32lriscv -T firmware/c_demo/linker.ld -o {{ build_dir }}/firmware/c_demo/c_demo.elf {{ build_dir }}/firmware/c_demo/startup.o {{ build_dir }}/firmware/c_demo/main.o
+    @# C 程序需要 .text 和 .rodata, 因为字符串常量放在 .rodata.
+    riscv64-elf-objcopy -O binary -j .text -j .rodata {{ build_dir }}/firmware/c_demo/c_demo.elf {{ build_dir }}/firmware/c_demo/c_demo.bin
+    @xxd -e -g 4 -c 4 {{ build_dir }}/firmware/c_demo/c_demo.bin | awk '{ print $2 }' > firmware/c_demo/c_demo.hex
+    @riscv64-elf-size {{ build_dir }}/firmware/c_demo/c_demo.elf
+
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -97,7 +111,10 @@ test-rv32i-soc-mmio:
 test-rv32i-soc-uart-rom: firmware-uart-demo
     @just run-verilog rv32i_soc_uart_rom_vlg_tst
 
-test-de1-soc-top: firmware-board-demo
+test-rv32i-soc-c-rom: firmware-c-demo
+    @just run-verilog rv32i_soc_c_rom_vlg_tst
+
+test-de1-soc-top: firmware-c-demo
     @just run-verilog de1_soc_top_vlg_tst
 
 clean:

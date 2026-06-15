@@ -14,6 +14,10 @@ module rv32i_soc_mmio_vlg_tst;
   wire [31:0] dmem_wdata;
   wire [31:0] dmem_rdata;
 
+  wire rom_req;
+  wire [31:0] rom_addr;
+  wire [31:0] rom_rdata;
+
   wire ram_req;
   wire ram_we;
   wire [3:0] ram_be;
@@ -83,6 +87,9 @@ module rv32i_soc_mmio_vlg_tst;
       .addr(dmem_addr),
       .wdata(dmem_wdata),
       .rdata(dmem_rdata),
+      .rom_req(rom_req),
+      .rom_addr(rom_addr),
+      .rom_rdata(rom_rdata),
       .ram_req(ram_req),
       .ram_we(ram_we),
       .ram_be(ram_be),
@@ -102,6 +109,8 @@ module rv32i_soc_mmio_vlg_tst;
       .uart_wdata(uart_wdata),
       .uart_rdata(uart_rdata)
   );
+
+  assign rom_rdata = 32'h0000_0013;
 
   simple_ram u_ram (
       .clk(clk),

@@ -5,8 +5,8 @@
 //   1. 初始化 HEX 段码, HEX0 到 HEX5 分别显示 0 到 5.
 //   2. 循环读取 SW, 并把 SW[9:0] 镜像到 LEDR[9:0].
 module simple_rom #(
-    parameter ROM_WORDS = 256,
-    parameter ROM_WORD_ADDR_BITS = 8,  // 如果 256 改成别的, 这个也需要对应修改位数
+    parameter ROM_WORDS = 8192,
+    parameter ROM_WORD_ADDR_BITS = 13,  // 8192 words = 32 KiB, 对应 0x0000_0000 - 0x0000_7fff
     parameter ROM_FILE = "firmware/board_demo/board_demo.hex"
 ) (
     input  wire [31:0] addr,
@@ -14,7 +14,12 @@ module simple_rom #(
 );
 
   reg [31:0] rom[0:ROM_WORDS-1];
+  integer i;
+
   initial begin // 这个 initial 块是可以被综合的, 其读取 hex 文件作为 rom, 会被 quartus 整合进内存当中.
+    for (i = 0; i < ROM_WORDS; i = i + 1) begin
+      rom[i] = 32'h0000_0013;  // 没有写入 hex 的位置默认是 nop.
+    end
     $readmemh(ROM_FILE, rom);
   end
 
