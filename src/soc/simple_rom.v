@@ -7,7 +7,7 @@ module simple_rom (
 );
 
   always @(*) begin
-    case (addr & ~(32'b1))
+    case (addr & ~(32'b11))
       32'h0000_0000: rdata = 32'h0050_0093;  // addi x1, x0, 5 ; x1 = 5
       32'h0000_0004: rdata = 32'h0070_0113;  // addi x2, x0, 7 ; x2 = 7
       32'h0000_0008: rdata = 32'h0020_81b3;  // add x3, x1, x2 ; x3 = x1 + x2 = 12
@@ -17,7 +17,7 @@ module simple_rom (
       32'h0000_0018: rdata = 32'h0010_0293;  // add x5, x0, 1 ; 失败标记
       32'h0000_001c: rdata = 32'h0020_0293;  // addi x1, x0, 2 ; 成功标记
       32'h0000_0020: rdata = 32'h0000_0063;  // beq x0, x0, 0 ; 原地死循环, 停住
-      default: rdata = 32'h0000_0013;
+      default: rdata = 32'h0000_0013;  // nop
     endcase
   end
 
