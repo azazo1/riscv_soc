@@ -91,7 +91,7 @@ just test-sdram-simple-ctrl
 当前提供了一个 SDRAM 自检 C 程序:
 
 ```text
-firmware/init_app/sdram_test.c
+apps/sdram_test/main.c
 ```
 
 生成 binary:
@@ -103,10 +103,10 @@ just build-app-sdram-test
 输出文件:
 
 ```text
-build/firmware/sdram_test/sdram_test.bin
+build/apps/sdram_test/sdram_test.bin
 ```
 
-这个 recipe 不会覆盖 `build/firmware/sdcard/init.bin`. 如果要用现有 SD bootloader 上板运行, 可以把 `sdram_test.bin` 放到 FAT32 SD 卡根目录, 文件名改成 `INIT.BIN`.
+如果要用现有 SD bootloader 上板运行, 可以把 `sdram_test.bin` 放到 FAT32 SD 卡根目录, 文件名改成 `INIT.BIN`.
 
 程序现象:
 

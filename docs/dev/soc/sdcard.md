@@ -51,7 +51,7 @@ bootloader 的任务是:
 - 当前阶段: 放上板 demo 或 C demo.
 - SD 启动阶段: 放 bootloader.
 
-bootloader 自身仍然可以用 hex 初始化到 ROM, 但它从 SD 卡读取的目标程序必须是 `init.bin` binary.
+bootloader 自身仍然可以用 hex 初始化到 ROM, 但它从 SD 卡读取的目标程序必须是 raw binary, 并且在 SD 卡根目录命名为 `INIT.BIN`.
 
 运行下面命令可以生成 ROM 里的 bootloader:
 
@@ -65,7 +65,7 @@ just firmware-bootloader
 firmware/bootloader/bootloader.hex
 ```
 
-运行下面命令可以先生成后续放入 SD 卡的二进制文件:
+运行下面命令可以先生成后续放入 SD 卡的应用二进制文件:
 
 ```shell
 just build-app-board
@@ -74,7 +74,7 @@ just build-app-board
 输出文件是:
 
 ```text
-build/firmware/sdcard/init.bin
+build/apps/board_app/board_app.bin
 ```
 
-把 `build/firmware/sdcard/init.bin` 复制到 FAT32 SD 卡根目录, 文件名使用 `init.bin` 或 `INIT.BIN` 均可.
+把 `build/apps/board_app/board_app.bin` 复制到 FAT32 SD 卡根目录, 文件名使用 `init.bin` 或 `INIT.BIN` 均可.

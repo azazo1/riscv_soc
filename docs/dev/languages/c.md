@@ -9,9 +9,9 @@
 - `firmware/c_demo/linker.ld`: 链接脚本, 指定 ROM 和 RAM 的地址范围.
 - `firmware/c_demo/main.c`: C 示例程序.
 - `firmware/c_demo/c_demo.hex`: 给 `simple_rom` 使用的 ROM 镜像.
-- `firmware/init_app/board_app.c`: 给 bootloader 加载的上板观察程序.
-- `firmware/init_app/linker.ld`: SD 启动程序链接脚本, 程序入口放在 `0x0000_8000`.
-- `build/firmware/sdcard/init.bin`: 给 bootloader 从 SD 卡读取的 raw binary.
+- `apps/board_app/main.c`: 给 bootloader 加载的上板观察程序.
+- `apps/linker.ld`: SD 启动程序链接脚本, 程序入口放在 `0x0000_8000`.
+- `build/apps/board_app/board_app.bin`: 按 SD 启动地址链接的应用 raw binary.
 
 ## 地址布局
 
@@ -30,7 +30,7 @@ SD 启动程序使用这个内存布局:
 | --- | --- | --- | --- |
 | RAM | `0x0000_8000` | `32K` | `.text`, `.rodata`, `.data`, `.bss`, stack |
 
-bootloader 会把 `INIT.BIN` 从 SD 卡拷贝到 `0x0000_8000`, 然后跳到这个地址执行. 因此 SD 启动程序必须使用 `firmware/init_app/linker.ld` 链接, 不能直接复用 ROM 地址的 `firmware/c_demo/linker.ld`.
+bootloader 会把 `INIT.BIN` 从 SD 卡拷贝到 `0x0000_8000`, 然后跳到这个地址执行. 因此 SD 启动程序必须使用 `apps/linker.ld` 链接, 不能直接复用 ROM 地址的 `firmware/c_demo/linker.ld`.
 
 ## 头文件
 
@@ -61,7 +61,7 @@ just firmware-c-demo
 
 `firmware/c_demo/c_demo.hex` 只包含实际固件 word. 如果 CPU 跑到 hex 未初始化的 ROM 区域, 读到的内容不作为稳定行为依赖.
 
-生成 SD 卡用的 `init.bin`:
+生成可放入 SD 卡的 board app:
 
 ```shell
 just build-app-board
@@ -69,12 +69,12 @@ just build-app-board
 
 它会生成:
 
-- `build/firmware/sdcard/init.elf`: 按 `0x0000_8000` 链接的 ELF 文件.
-- `build/firmware/sdcard/init.bin`: 放到 FAT32 SD 卡根目录的 raw binary.
+- `build/apps/board_app/board_app.elf`: 按 `0x0000_8000` 链接的 ELF 文件.
+- `build/apps/board_app/board_app.bin`: 应用 raw binary.
 
-当前 `init.bin` 来自 `firmware/init_app/board_app.c`. 它不是 hex 文件, 不能给 `$readmemh` 直接使用. bootloader 会按 FAT32 文件读取它.
+当前 `board_app.bin` 来自 `apps/board_app/main.c`. 它不是 hex 文件, 不能给 `$readmemh` 直接使用. 上板时把它复制到 FAT32 SD 卡根目录, 文件名改成 `INIT.BIN`.
 
-`init.bin` 支持带初始值的全局变量. 原因是 `init_app` 的 `.text`, `.rodata`, `.data` 都在 RAM 地址空间里, bootloader 会把整个 binary 直接加载到 `0x0000_8000`. `.bss` 仍然由 `startup.S` 清零.
+这类 app 支持带初始值的全局变量. 原因是 `init_app` 的 `.text`, `.rodata`, `.data` 都在 RAM 地址空间里, bootloader 会把整个 binary 直接加载到 `0x0000_8000`. `.bss` 仍然由 `startup.S` 清零.
 
 生成软浮点测试程序:
 
@@ -109,7 +109,7 @@ just build-app-soft-float-test
 - 支持 `.bss` 清零.
 - 支持 stack, 当前栈顶是 `0x0000_8400`.
 - 直接放进 ROM 的 `firmware-c-demo` 暂时不支持带初始值的全局变量, 因为还没有从 ROM 复制 `.data` 到 RAM 的启动逻辑.
-- 通过 SD 启动的 `init.bin` 支持 initialized `.data`.
+- 通过 SD 启动的 app binary 支持 initialized `.data`.
 - 支持软浮点 helper, 但不支持硬件 F/D 浮点指令.
 - 暂时没有 `malloc`, `printf`, 中断和系统调用.
 - C 编译后必须检查不能出现 RVC, M, CSR, A/F/D 等当前 CPU 不支持的指令.

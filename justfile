@@ -69,47 +69,48 @@ firmware-bootloader:
     @riscv64-elf-size {{ build_dir }}/firmware/bootloader/bootloader.elf
 
 build-app-board:
-    @mkdir -p {{ build_dir }}/firmware/sdcard
-    @# init.bin 是 SD bootloader 读取的原始 binary, 入口地址按 0x0000_8000 链接.
-    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/firmware/sdcard/main.o firmware/init_app/board_app.c
-    riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/firmware/sdcard/startup.o firmware/c_demo/startup.S
+    @mkdir -p {{ build_dir }}/apps/board_app
+    @# board_app.bin 是普通应用镜像, 入口地址按 0x0000_8000 链接.
+    @# 上板时再把选中的 .bin 文件放到 SD 卡根目录并命名为 INIT.BIN.
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/apps/board_app/main.o apps/board_app/main.c
+    riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/apps/board_app/startup.o firmware/c_demo/startup.S
     @# 用 zig cc 链接, 让 compiler-rt 提供 __mulsi3, __divsi3 等软件整数 helper.
-    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,firmware/init_app/linker.ld -Wl,--gc-sections -o {{ build_dir }}/firmware/sdcard/init.elf {{ build_dir }}/firmware/sdcard/startup.o {{ build_dir }}/firmware/sdcard/main.o
-    @# init_app 整体在 RAM 中运行, 所以 .data 初值可以直接放进 init.bin.
-    riscv64-elf-objcopy -O binary -j .text -j .rodata -j .data {{ build_dir }}/firmware/sdcard/init.elf {{ build_dir }}/firmware/sdcard/init.bin
-    @riscv64-elf-size {{ build_dir }}/firmware/sdcard/init.elf
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,apps/linker.ld -Wl,--gc-sections -o {{ build_dir }}/apps/board_app/board_app.elf {{ build_dir }}/apps/board_app/startup.o {{ build_dir }}/apps/board_app/main.o
+    @# init_app 整体在 RAM 中运行, 所以 .data 初值可以直接放进 .bin.
+    riscv64-elf-objcopy -O binary -j .text -j .rodata -j .data {{ build_dir }}/apps/board_app/board_app.elf {{ build_dir }}/apps/board_app/board_app.bin
+    @riscv64-elf-size {{ build_dir }}/apps/board_app/board_app.elf
 
 build-app-sdram-test:
-    @mkdir -p {{ build_dir }}/firmware/sdram_test
+    @mkdir -p {{ build_dir }}/apps/sdram_test
     @# sdram_test.bin 按 0x0000_8000 链接, 上板时可手动改名为 INIT.BIN.
-    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/firmware/sdram_test/main.o firmware/init_app/sdram_test.c
-    riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/firmware/sdram_test/startup.o firmware/c_demo/startup.S
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/apps/sdram_test/main.o apps/sdram_test/main.c
+    riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/apps/sdram_test/startup.o firmware/c_demo/startup.S
     @# 用 zig cc 链接, 让 compiler-rt 在需要时提供整数 helper.
-    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,firmware/init_app/linker.ld -Wl,--gc-sections -o {{ build_dir }}/firmware/sdram_test/sdram_test.elf {{ build_dir }}/firmware/sdram_test/startup.o {{ build_dir }}/firmware/sdram_test/main.o
-    riscv64-elf-objcopy -O binary -j .text -j .rodata -j .data {{ build_dir }}/firmware/sdram_test/sdram_test.elf {{ build_dir }}/firmware/sdram_test/sdram_test.bin
-    @riscv64-elf-size {{ build_dir }}/firmware/sdram_test/sdram_test.elf
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,apps/linker.ld -Wl,--gc-sections -o {{ build_dir }}/apps/sdram_test/sdram_test.elf {{ build_dir }}/apps/sdram_test/startup.o {{ build_dir }}/apps/sdram_test/main.o
+    riscv64-elf-objcopy -O binary -j .text -j .rodata -j .data {{ build_dir }}/apps/sdram_test/sdram_test.elf {{ build_dir }}/apps/sdram_test/sdram_test.bin
+    @riscv64-elf-size {{ build_dir }}/apps/sdram_test/sdram_test.elf
 
-build-sdram-app-test-image: build-app-sdram-test
+build-app-sdram-test-image: build-app-sdram-test
     @mkdir -p {{ build_dir }}/tests/sdram_app
-    @just bin-to-rom-hex {{ build_dir }}/firmware/sdram_test/sdram_test.bin {{ build_dir }}/tests/sdram_app/sdram_test.hex
+    @just bin-to-rom-hex {{ build_dir }}/apps/sdram_test/sdram_test.bin {{ build_dir }}/tests/sdram_app/sdram_test.hex
 
 build-app-init-data-test:
     @mkdir -p {{ build_dir }}/tests/init_data_test
-    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/tests/init_data_test/main.o firmware/init_app/init_data_test.c
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/tests/init_data_test/main.o apps/init_data_test/main.c
     riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/tests/init_data_test/startup.o firmware/c_demo/startup.S
     @# 用 zig cc 链接, 让 compiler-rt 提供 __mulsi3, __divsi3 等软件整数 helper.
-    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,firmware/init_app/linker.ld -Wl,--gc-sections -o {{ build_dir }}/tests/init_data_test/init_data_test.elf {{ build_dir }}/tests/init_data_test/startup.o {{ build_dir }}/tests/init_data_test/main.o
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,apps/linker.ld -Wl,--gc-sections -o {{ build_dir }}/tests/init_data_test/init_data_test.elf {{ build_dir }}/tests/init_data_test/startup.o {{ build_dir }}/tests/init_data_test/main.o
     riscv64-elf-objcopy -O binary -j .text -j .rodata -j .data {{ build_dir }}/tests/init_data_test/init_data_test.elf {{ build_dir }}/tests/init_data_test/init_data_test.bin
     @just bin-to-rom-hex {{ build_dir }}/tests/init_data_test/init_data_test.bin {{ build_dir }}/tests/init_data_test/init_data_test.hex
     @riscv64-elf-size {{ build_dir }}/tests/init_data_test/init_data_test.elf
 
 build-app-soft-float-test:
     @mkdir -p {{ build_dir }}/tests/soft_float_test
-    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -ffunction-sections -fdata-sections -I firmware/include -c -o {{ build_dir }}/tests/soft_float_test/main.o firmware/init_app/soft_float_test.c
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -ffunction-sections -fdata-sections -I firmware/include -c -o {{ build_dir }}/tests/soft_float_test/main.o apps/soft_float_test/main.c
     riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/tests/soft_float_test/startup.o firmware/c_demo/startup.S
     @# 用 zig cc 链接, 让 Zig 自动带上 compiler-rt builtins, 例如 __addsf3, __mulsf3.
     @# --gc-sections 会丢弃没有用到的 helper, 否则软浮点运行时会明显变大.
-    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -ffunction-sections -fdata-sections -Wl,--gc-sections -Wl,-T,firmware/init_app/linker.ld -o {{ build_dir }}/tests/soft_float_test/soft_float_test.elf {{ build_dir }}/tests/soft_float_test/startup.o {{ build_dir }}/tests/soft_float_test/main.o
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -ffunction-sections -fdata-sections -Wl,--gc-sections -Wl,-T,apps/linker.ld -o {{ build_dir }}/tests/soft_float_test/soft_float_test.elf {{ build_dir }}/tests/soft_float_test/startup.o {{ build_dir }}/tests/soft_float_test/main.o
     riscv64-elf-objcopy -O binary -j .text -j .rodata -j .data {{ build_dir }}/tests/soft_float_test/soft_float_test.elf {{ build_dir }}/tests/soft_float_test/soft_float_test.bin
     @just bin-to-rom-hex {{ build_dir }}/tests/soft_float_test/soft_float_test.bin {{ build_dir }}/tests/soft_float_test/soft_float_test.hex
     @riscv64-elf-size {{ build_dir }}/tests/soft_float_test/soft_float_test.elf
@@ -186,7 +187,7 @@ test-rv32i-soc-init-data: build-app-init-data-test
 test-rv32i-soc-soft-float: build-app-soft-float-test
     @just run-verilog rv32i_soc_soft_float_vlg_tst
 
-test-rv32i-soc-sdram-app: build-sdram-app-test-image
+test-rv32i-soc-sdram-app: build-app-sdram-test-image
     @just run-verilog rv32i_soc_sdram_app_vlg_tst
 
 test-rv32i-soc-uart-rom: firmware-uart-demo

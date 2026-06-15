@@ -8,8 +8,8 @@ bootloader 是 ROM 中的第一段程序. 它负责初始化外接 SPI SD 模块
 - `firmware/bootloader/main.c`: 初始化 SD 卡, 解析 FAT32, 加载 `INIT.BIN`, 跳转到 RAM.
 - `firmware/bootloader/linker.ld`: 指定 bootloader 的 ROM 和 RAM 布局.
 - `firmware/bootloader/bootloader.hex`: 给 `$readmemh` 使用的 ROM 初始化文件.
-- `firmware/init_app/board_app.c`: 默认被构建成 `INIT.BIN` 的上板观察程序.
-- `firmware/init_app/linker.ld`: 把 SD 卡里的应用程序链接到 `0x0000_8000`.
+- `apps/board_app/main.c`: 默认上板观察程序, 构建后可放到 SD 卡根目录作为 `INIT.BIN`.
+- `apps/linker.ld`: 把 SD 卡里的应用程序链接到 `0x0000_8000`.
 
 ## 运行流程
 
@@ -73,7 +73,7 @@ bootloader 运行时, RAM 的低 28 KiB 留给将要加载的 `INIT.BIN`, 高 4 
 0x0000_f000 - 0x0000_ffff  bootloader .bss 和 stack
 ```
 
-`build-app-board` 使用 `firmware/init_app/linker.ld`, 所以 app 被作为 `init.bin` 构建时, 它的软件视角是:
+`build-app-board` 使用 `apps/linker.ld`, 所以 app 被 bootloader 加载后, 它的软件视角是:
 
 ```text
 0x0000_8000  _start
@@ -84,7 +84,7 @@ bootloader 运行时, RAM 的低 28 KiB 留给将要加载的 `INIT.BIN`, 高 4 
 0x0001_0000  _stack_top
 ```
 
-`init_app` 支持 initialized `.data`. 因为 `.data` 的运行地址就在 RAM 中, `objcopy` 会把 `.data` 放进 `init.bin`, bootloader 加载后初始值已经位于正确地址. `.bss` 不占用 `init.bin`, 仍然由 `startup.S` 清零.
+`init_app` 支持 initialized `.data`. 因为 `.data` 的运行地址就在 RAM 中, `objcopy` 会把 `.data` 放进应用 binary, bootloader 加载后初始值已经位于正确地址. `.bss` 不占用 binary, 仍然由 `startup.S` 清零.
 
 MMIO 地址不会因为 bootloader 加载而改变:
 
@@ -132,10 +132,10 @@ just build-app-board
 输出文件:
 
 ```text
-build/firmware/sdcard/init.bin
+build/apps/board_app/board_app.bin
 ```
 
-把 `build/firmware/sdcard/init.bin` 复制到 FAT32 SD 卡根目录, 文件名使用 `init.bin` 或 `INIT.BIN` 均可. 关键是 FAT32 目录项需要形成短文件名 `INIT    BIN`.
+把 `build/apps/board_app/board_app.bin` 复制到 FAT32 SD 卡根目录, 文件名使用 `init.bin` 或 `INIT.BIN` 均可. 关键是 FAT32 目录项需要形成短文件名 `INIT    BIN`.
 
 ## 上板观察
 
@@ -156,7 +156,7 @@ init app
 
 如果只看到 `boot`, 通常说明 SD 初始化或 FAT32 读取阶段失败. 如果看到 `jump` 但后续程序没有输出, 重点检查 `INIT.BIN` 是否按 `0x0000_8000` 链接, 以及 `init_app` 的启动代码是否正确.
 
-当前默认 `INIT.BIN` 是 `firmware/init_app/board_app.c`.
+当前默认上板 app 源码是 `apps/board_app/main.c`.
 
 - LEDR[0] 表示 app 已启动.
 - LEDR[9] 周期闪烁.
