@@ -52,7 +52,7 @@ rv32i_core
 - RV32I 指令固定 4 字节, 所以可用 `addr[31:2]` 选择第几条指令.
 - ROM 内容通过 `$readmemh` 从 hex 文件初始化.
 - 默认 `ROM_FILE` 是 `firmware/board_demo/board_demo.hex`, 板级 `de1_soc_top` 默认改用 `firmware/bootloader/bootloader.hex`.
-- `ROM_WORDS` 默认是 8192, 对应 32 KiB.
+- `ROM_WORDS` 默认是 2048, 对应 8 KiB.
 - `ROM_WORDS` 决定可访问的 word 数, 超出范围时返回 `32'h0000_0013`.
 - 固件 hex 只包含实际固件 word, 未写入的 ROM 内容不作为稳定行为依赖.
 

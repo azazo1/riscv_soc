@@ -5,8 +5,8 @@
 //   1. 初始化 HEX 段码, HEX0 到 HEX5 分别显示 0 到 5.
 //   2. 循环读取 SW, 并把 SW[9:0] 镜像到 LEDR[9:0].
 module simple_rom #(
-    parameter ROM_WORDS = 8192,
-    parameter ROM_WORD_ADDR_BITS = 13,  // 8192 words = 32 KiB, 对应 0x0000_0000 - 0x0000_7fff
+    parameter ROM_WORDS = 2048,
+    parameter ROM_WORD_ADDR_BITS = 11,  // 2048 words = 8 KiB, enough for the current bootloader.
     parameter ROM_FILE = "firmware/board_demo/board_demo.hex"
 ) (
     input  wire [31:0] addr,
