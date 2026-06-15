@@ -79,6 +79,20 @@ build-app-board:
     riscv64-elf-objcopy -O binary -j .text -j .rodata -j .data {{ build_dir }}/firmware/sdcard/init.elf {{ build_dir }}/firmware/sdcard/init.bin
     @riscv64-elf-size {{ build_dir }}/firmware/sdcard/init.elf
 
+build-app-sdram-test:
+    @mkdir -p {{ build_dir }}/firmware/sdram_test
+    @# sdram_test.bin 按 0x0000_8000 链接, 上板时可手动改名为 INIT.BIN.
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/firmware/sdram_test/main.o firmware/init_app/sdram_test.c
+    riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/firmware/sdram_test/startup.o firmware/c_demo/startup.S
+    @# 用 zig cc 链接, 让 compiler-rt 在需要时提供整数 helper.
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,firmware/init_app/linker.ld -Wl,--gc-sections -o {{ build_dir }}/firmware/sdram_test/sdram_test.elf {{ build_dir }}/firmware/sdram_test/startup.o {{ build_dir }}/firmware/sdram_test/main.o
+    riscv64-elf-objcopy -O binary -j .text -j .rodata -j .data {{ build_dir }}/firmware/sdram_test/sdram_test.elf {{ build_dir }}/firmware/sdram_test/sdram_test.bin
+    @riscv64-elf-size {{ build_dir }}/firmware/sdram_test/sdram_test.elf
+
+build-sdram-app-test-image: build-app-sdram-test
+    @mkdir -p {{ build_dir }}/tests/sdram_app
+    @just bin-to-rom-hex {{ build_dir }}/firmware/sdram_test/sdram_test.bin {{ build_dir }}/tests/sdram_app/sdram_test.hex
+
 build-app-init-data-test:
     @mkdir -p {{ build_dir }}/tests/init_data_test
     zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/tests/init_data_test/main.o firmware/init_app/init_data_test.c
@@ -104,7 +118,7 @@ bin-to-rom-hex input output:
     @# xxd -e -g 4 -c 4 把 little-endian 字节按 32-bit word 输出给 $readmemh.
     @xxd -e -g 4 -c 4 {{ input }} | awk '{ print $2 }' > {{ output }}
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-ram-exec test-rv32i-soc-init-data test-rv32i-soc-soft-float test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-sdram-simple-ctrl test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-ram-exec test-rv32i-soc-init-data test-rv32i-soc-soft-float test-rv32i-soc-sdram-app test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -171,6 +185,9 @@ test-rv32i-soc-init-data: build-app-init-data-test
 
 test-rv32i-soc-soft-float: build-app-soft-float-test
     @just run-verilog rv32i_soc_soft_float_vlg_tst
+
+test-rv32i-soc-sdram-app: build-sdram-app-test-image
+    @just run-verilog rv32i_soc_sdram_app_vlg_tst
 
 test-rv32i-soc-uart-rom: firmware-uart-demo
     @just run-verilog rv32i_soc_uart_rom_vlg_tst

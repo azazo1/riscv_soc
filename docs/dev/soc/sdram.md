@@ -86,6 +86,45 @@ just test-sdram-simple-ctrl
 
 `sdram_model.v` 只用于 testbench. 它不是完整 SDRAM 芯片模型, 只用来验证本项目控制器的命令顺序和基本读写.
 
+## 上板自检程序
+
+当前提供了一个 SDRAM 自检 C 程序:
+
+```text
+firmware/init_app/sdram_test.c
+```
+
+生成 binary:
+
+```shell
+just build-app-sdram-test
+```
+
+输出文件:
+
+```text
+build/firmware/sdram_test/sdram_test.bin
+```
+
+这个 recipe 不会覆盖 `build/firmware/sdcard/init.bin`. 如果要用现有 SD bootloader 上板运行, 可以把 `sdram_test.bin` 放到 FAT32 SD 卡根目录, 文件名改成 `INIT.BIN`.
+
+程序现象:
+
+- UART 输出 `SDRAM test\n`.
+- LEDR 初始为 `0x001`.
+- 写读多个 SDRAM word 地址, 包括起始地址和靠近 64 MiB 末尾的地址.
+- 额外用 byte store 检查 4 个 byte lane.
+- 通过后 LEDR 显示 `0x3ff`, UART 输出 `SDRAM PASS\n`.
+- 失败时 LEDR[9] 闪烁, 低 8 bit 显示失败步骤, UART 输出 step, index, expected, actual.
+
+对应仿真:
+
+```shell
+just test-rv32i-soc-sdram-app
+```
+
+这个测试会把 `sdram_test.bin` 转成临时 hex, 预装到本地 RAM, 从 `0x0000_8000` 启动, 再通过 `sdram_model` 检查程序能走到 LEDR `0x3ff`.
+
 ## 后续
 
 当前 SDRAM 已经可以作为 data bus 的大容量窗口. 更完整的方向:
