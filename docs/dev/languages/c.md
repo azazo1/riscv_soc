@@ -9,6 +9,7 @@
 - `firmware/c_demo/linker.ld`: 链接脚本, 指定 ROM 和 RAM 的地址范围.
 - `firmware/c_demo/main.c`: C 示例程序.
 - `firmware/c_demo/c_demo.hex`: 给 `simple_rom` 使用的 ROM 镜像.
+- `firmware/init_app/board_app.c`: 给 bootloader 加载的上板观察程序.
 - `firmware/init_app/linker.ld`: SD 启动程序链接脚本, 程序入口放在 `0x0000_8000`.
 - `build/firmware/sdcard/init.bin`: 给 bootloader 从 SD 卡读取的 raw binary.
 
@@ -63,7 +64,7 @@ just firmware-c-demo
 生成 SD 卡用的 `init.bin`:
 
 ```shell
-just firmware-init-bin
+just build-app-board
 ```
 
 它会生成:
@@ -71,7 +72,7 @@ just firmware-init-bin
 - `build/firmware/sdcard/init.elf`: 按 `0x0000_8000` 链接的 ELF 文件.
 - `build/firmware/sdcard/init.bin`: 放到 FAT32 SD 卡根目录的 raw binary.
 
-`init.bin` 不是 hex 文件, 不能给 `$readmemh` 直接使用. bootloader 会按 FAT32 文件读取它.
+当前 `init.bin` 来自 `firmware/init_app/board_app.c`. 它不是 hex 文件, 不能给 `$readmemh` 直接使用. bootloader 会按 FAT32 文件读取它.
 
 `init.bin` 支持带初始值的全局变量. 原因是 `init_app` 的 `.text`, `.rodata`, `.data` 都在 RAM 地址空间里, bootloader 会把整个 binary 直接加载到 `0x0000_8000`. `.bss` 仍然由 `startup.S` 清零.
 
@@ -133,4 +134,13 @@ riscv64-elf-objdump -d build/firmware/c_demo/c_demo.elf
 - KEY 状态改变时, UART 发送 `Kx\n`, 其中 `x` 是 KEY 低 4 bit 的十六进制值.
 - KEY 状态改变后, `LEDR[1:0]` 显示 `11`.
 
-如果使用 `de1_soc_top` 默认配置, ROM 里先运行 bootloader. bootloader 通过 SPI SD 模块读取 FAT32 根目录的 `INIT.BIN`, 再跳到 RAM 执行. 当前 `just firmware-init-bin` 生成的 `INIT.BIN` 运行后也是上面的 C demo 行为.
+如果使用 `de1_soc_top` 默认配置, ROM 里先运行 bootloader. bootloader 通过 SPI SD 模块读取 FAT32 根目录的 `INIT.BIN`, 再跳到 RAM 执行.
+
+如果使用 bootloader 加载当前 `board_app`:
+
+- UART 先输出 `init app\n`.
+- LEDR[0] 表示 app 已启动.
+- LEDR[9] 周期闪烁, 表示主循环仍在运行.
+- LEDR[8:2] 跟随 SW[6:0].
+- HEX 显示 `KEY event count` 和 SW 低 10 bit.
+- KEY[3:0] 状态变化时, LEDR[1] 翻转, UART 输出 `Kx yy\n`.

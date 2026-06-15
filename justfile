@@ -18,7 +18,7 @@ build-verilog top:
 run-verilog top:
     @just run-verilog-with {{ top }} {{ verilog_sources }}
 
-firmware: firmware-board-demo firmware-uart-demo firmware-bootloader firmware-init-bin
+firmware: firmware-board-demo firmware-uart-demo firmware-bootloader
 
 firmware-board-demo:
     @mkdir -p {{ build_dir }}/firmware/board_demo
@@ -66,10 +66,10 @@ firmware-bootloader:
     @just bin-to-rom-hex {{ build_dir }}/firmware/bootloader/bootloader.bin firmware/bootloader/bootloader.hex
     @riscv64-elf-size {{ build_dir }}/firmware/bootloader/bootloader.elf
 
-firmware-init-bin:
+build-app-board:
     @mkdir -p {{ build_dir }}/firmware/sdcard
     @# init.bin 是 SD bootloader 读取的原始 binary, 入口地址按 0x0000_8000 链接.
-    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/firmware/sdcard/main.o firmware/c_demo/main.c
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/firmware/sdcard/main.o firmware/init_app/board_app.c
     riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/firmware/sdcard/startup.o firmware/c_demo/startup.S
     riscv64-elf-ld -m elf32lriscv -T firmware/init_app/linker.ld -o {{ build_dir }}/firmware/sdcard/init.elf {{ build_dir }}/firmware/sdcard/startup.o {{ build_dir }}/firmware/sdcard/main.o
     @# init_app 整体在 RAM 中运行, 所以 .data 初值可以直接放进 init.bin.

@@ -68,7 +68,7 @@ firmware/bootloader/bootloader.hex
 运行下面命令可以先生成后续放入 SD 卡的二进制文件:
 
 ```shell
-just firmware-init-bin
+just build-app-board
 ```
 
 输出文件是:
