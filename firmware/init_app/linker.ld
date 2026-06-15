@@ -38,8 +38,6 @@ SECTIONS
 
     _stack_top = ORIGIN(RAM) + LENGTH(RAM);
 
-    ASSERT(_sdata == _edata, "init_app does not support initialized data yet")
-
     /DISCARD/ : {
         *(.comment)
         *(.riscv.attributes)

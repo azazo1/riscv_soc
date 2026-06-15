@@ -73,6 +73,8 @@ just firmware-init-bin
 
 `init.bin` 不是 hex 文件, 不能给 `$readmemh` 直接使用. bootloader 会按 FAT32 文件读取它.
 
+`init.bin` 支持带初始值的全局变量. 原因是 `init_app` 的 `.text`, `.rodata`, `.data` 都在 RAM 地址空间里, bootloader 会把整个 binary 直接加载到 `0x0000_8000`. `.bss` 仍然由 `startup.S` 清零.
+
 ## 参数含义
 
 `zig cc` 用来把 C 编译成 RISC-V 目标文件:
@@ -97,7 +99,8 @@ just firmware-init-bin
 
 - 支持 `.bss` 清零.
 - 支持 stack, 当前栈顶是 `0x0000_8400`.
-- 暂时不支持带初始值的全局变量, 因为还没有从 ROM 复制 `.data` 到 RAM 的启动逻辑.
+- 直接放进 ROM 的 `firmware-c-demo` 暂时不支持带初始值的全局变量, 因为还没有从 ROM 复制 `.data` 到 RAM 的启动逻辑.
+- 通过 SD 启动的 `init.bin` 支持 initialized `.data`.
 - 暂时没有 `malloc`, `printf`, 中断和系统调用.
 - C 编译后必须检查不能出现 RVC, M 扩展, CSR 等当前 CPU 不支持的指令.
 

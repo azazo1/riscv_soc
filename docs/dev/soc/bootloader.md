@@ -78,10 +78,12 @@ bootloader 运行时, RAM 的低 28 KiB 留给将要加载的 `INIT.BIN`, 高 4 
 0x0000_8000  _start
               .text
               .rodata
-              .data 当前仍要求为空
+              .data
               .bss
 0x0001_0000  _stack_top
 ```
+
+`init_app` 支持 initialized `.data`. 因为 `.data` 的运行地址就在 RAM 中, `objcopy` 会把 `.data` 放进 `init.bin`, bootloader 加载后初始值已经位于正确地址. `.bss` 不占用 `init.bin`, 仍然由 `startup.S` 清零.
 
 MMIO 地址不会因为 bootloader 加载而改变:
 
