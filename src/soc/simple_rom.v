@@ -4,25 +4,28 @@
 // 当前内容是上板 demo 程序:
 //   1. 初始化 HEX 段码, HEX0 到 HEX5 分别显示 0 到 5.
 //   2. 循环读取 SW, 并把 SW[9:0] 镜像到 LEDR[9:0].
-module simple_rom (
+module simple_rom #(
+    parameter ROM_WORDS = 256,
+    parameter ROM_WORD_ADDR_BITS = 8,  // 如果 256 改成别的, 这个也需要对应修改位数
+    parameter ROM_FILE = "firmware/board_demo/board_demo.hex"
+) (
     input  wire [31:0] addr,
     output reg  [31:0] rdata
 );
 
+  reg [31:0] rom[0:ROM_WORDS-1];
+  initial begin // 这个 initial 块是可以被综合的, 其读取 hex 文件作为 rom, 会被 quartus 整合进内存当中.
+    $readmemh(ROM_FILE, rom);
+  end
+
+  wire [29:0] word_addr = addr[31:2];  // 字对齐
+
   always @(*) begin
-    case (addr & ~(32'b11))
-      32'h0000_0000: rdata = 32'h0100_00b7;  // lui x1, 0x01000, x1 = 0x0100_0000
-      32'h0000_0004: rdata = 32'h3024_8137;  // lui x2, 0x30248
-      32'h0000_0008: rdata = 32'h9401_0113;  // addi x2, x2, 0x940, x2 = 0x3024_7940
-      32'h0000_000c: rdata = 32'h0020_a623;  // sw x2, 12(x1), 写 HEX0 到 HEX3
-      32'h0000_0010: rdata = 32'h0000_11b7;  // lui x3, 0x00001
-      32'h0000_0014: rdata = 32'h2191_8193;  // addi x3, x3, 0x219, x3 = 0x0000_1219
-      32'h0000_0018: rdata = 32'h0030_a823;  // sw x3, 16(x1), 写 HEX4 到 HEX5
-      32'h0000_001c: rdata = 32'h0040_a203;  // lw x4, 4(x1), 读取 SW
-      32'h0000_0020: rdata = 32'h0040_a023;  // sw x4, 0(x1), 写 LEDR
-      32'h0000_0024: rdata = 32'hfe00_0ce3;  // beq x0, x0, -8, 回到读取 SW
-      default: rdata = 32'h0000_0013;  // nop
-    endcase
+    if (word_addr < ROM_WORDS) begin
+      rdata = rom[word_addr[ROM_WORD_ADDR_BITS-1:0]];
+    end else begin
+      rdata = 32'h0000_0013;  // nop 指令
+    end
   end
 
 endmodule
