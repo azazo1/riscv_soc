@@ -18,7 +18,7 @@ build-verilog top:
 run-verilog top:
     @just run-verilog-with {{ top }} {{ verilog_sources }}
 
-firmware: firmware-board-demo firmware-uart-demo firmware-c-demo
+firmware: firmware-board-demo firmware-uart-demo firmware-init-bin
 
 firmware-board-demo:
     @mkdir -p {{ build_dir }}/firmware/board_demo
@@ -55,11 +55,16 @@ firmware-c-demo:
     @just bin-to-rom-hex {{ build_dir }}/firmware/c_demo/c_demo.bin firmware/c_demo/c_demo.hex
     @riscv64-elf-size {{ build_dir }}/firmware/c_demo/c_demo.elf
 
+firmware-init-bin: firmware-c-demo
+    @mkdir -p {{ build_dir }}/firmware/sdcard
+    @# init.bin 是后续 SD bootloader 读取的原始 binary, 不是 $readmemh 使用的 hex.
+    @cp {{ build_dir }}/firmware/c_demo/c_demo.bin {{ build_dir }}/firmware/sdcard/init.bin
+
 bin-to-rom-hex input output:
     @# xxd -e -g 4 -c 4 把 little-endian 字节按 32-bit word 输出给 $readmemh.
     @xxd -e -g 4 -c 4 {{ input }} | awk '{ print $2 }' > {{ output }}
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -105,6 +110,9 @@ test-uart-tx:
 
 test-uart-tx-mmio:
     @just run-verilog uart_tx_mmio_vlg_tst
+
+test-spi-master-mmio:
+    @just run-verilog spi_master_mmio_vlg_tst
 
 test-rv32i-soc: firmware-board-demo
     @just run-verilog rv32i_soc_vlg_tst

@@ -16,8 +16,16 @@ typedef unsigned int u32;
 #define RV32I_UART_TXDATA  RV32I_REG32(0x01000100u)
 #define RV32I_UART_STATUS  RV32I_REG32(0x01000104u)
 
+#define RV32I_SPI_TXDATA  RV32I_REG32(0x01000200u)
+#define RV32I_SPI_RXDATA  RV32I_REG32(0x01000204u)
+#define RV32I_SPI_STATUS  RV32I_REG32(0x01000208u)
+#define RV32I_SPI_CTRL    RV32I_REG32(0x0100020cu)
+#define RV32I_SPI_DIV     RV32I_REG32(0x01000210u)
+
 #define RV32I_UART_TX_READY  0x00000001u
 #define RV32I_UART_TX_BUSY   0x00000002u
+#define RV32I_SPI_READY      0x00000001u
+#define RV32I_SPI_BUSY       0x00000002u
 
 /* Short aliases, close to the style of MCU register header files. */
 #define LEDR            RV32I_LEDR
@@ -29,6 +37,13 @@ typedef unsigned int u32;
 #define UART_STATUS     RV32I_UART_STATUS
 #define UART_TX_READY   RV32I_UART_TX_READY
 #define UART_TX_BUSY    RV32I_UART_TX_BUSY
+#define SPI_TXDATA      RV32I_SPI_TXDATA
+#define SPI_RXDATA      RV32I_SPI_RXDATA
+#define SPI_STATUS      RV32I_SPI_STATUS
+#define SPI_CTRL        RV32I_SPI_CTRL
+#define SPI_DIV         RV32I_SPI_DIV
+#define SPI_READY       RV32I_SPI_READY
+#define SPI_BUSY        RV32I_SPI_BUSY
 
 static inline void rv32i_led_write(u32 value)
 {
@@ -80,6 +95,30 @@ static inline void rv32i_uart_put_hex4(u32 value)
     } else {
         rv32i_uart_putc((char)('a' + value - 10u));
     }
+}
+
+static inline void rv32i_spi_wait_ready(void)
+{
+    while ((RV32I_SPI_STATUS & RV32I_SPI_READY) == 0u) {
+    }
+}
+
+static inline void rv32i_spi_set_cs(u32 cs_n)
+{
+    RV32I_SPI_CTRL = cs_n & 1u;
+}
+
+static inline void rv32i_spi_set_div(u32 div)
+{
+    RV32I_SPI_DIV = div;
+}
+
+static inline u8 rv32i_spi_transfer(u8 value)
+{
+    rv32i_spi_wait_ready();
+    RV32I_SPI_TXDATA = (u32)value;
+    rv32i_spi_wait_ready();
+    return (u8)RV32I_SPI_RXDATA;
 }
 
 #endif

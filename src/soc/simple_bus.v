@@ -39,7 +39,15 @@ module simple_bus (
     output wire [3:0] uart_be,
     output wire [31:0] uart_addr,
     output wire [31:0] uart_wdata,
-    input wire [31:0] uart_rdata
+    input wire [31:0] uart_rdata,
+
+    // 转发请求到 spi
+    output wire spi_req,
+    output wire spi_we,
+    output wire [3:0] spi_be,
+    output wire [31:0] spi_addr,
+    output wire [31:0] spi_wdata,
+    input wire [31:0] spi_rdata
 );
 
   localparam RAM_BASE = 32'h0000_8000;
@@ -51,6 +59,7 @@ module simple_bus (
   // 0x0000_8000 - 0x00ff_ffff RAM, bus 转成本地地址后访问 simple_ram
   // 0x0100_0000 - 0x0100_00ff MMIO-GPIO, 内部具体映射查看 gpio_mmio.v
   // 0x0100_0100 - 0x0100_01ff MMIO-UART, 内部具体映射查看 uart_tx_mmio.v
+  // 0x0100_0200 - 0x0100_02ff MMIO-SPI, 内部具体映射查看 spi_master_mmio.v
 
   wire rom_hit = (addr < ROM_LIMIT);
   wire ram_hit = (addr >= RAM_BASE) && (addr < RAM_LIMIT);
@@ -76,6 +85,12 @@ module simple_bus (
   assign uart_addr = addr;
   assign uart_wdata = wdata;
 
+  assign spi_req = req && (addr[31:8] == 24'h010002);
+  assign spi_we = we;
+  assign spi_be = be;
+  assign spi_addr = addr;
+  assign spi_wdata = wdata;
+
   always @(*) begin
     if (rom_req) begin
       rdata = rom_rdata;
@@ -85,6 +100,8 @@ module simple_bus (
       rdata = gpio_rdata;
     end else if (uart_req) begin
       rdata = uart_rdata;
+    end else if (spi_req) begin
+      rdata = spi_rdata;
     end else rdata = 32'b0;
   end
 

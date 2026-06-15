@@ -30,7 +30,13 @@ module rv32i_soc #(
     output wire [35:0] gpio1_oe,
 
     // uart tx
-    output wire uart_tx_pin
+    output wire uart_tx_pin,
+
+    // spi, for external sd card module in spi mode.
+    input wire spi_miso,
+    output wire spi_sclk,
+    output wire spi_mosi,
+    output wire spi_cs_n
 );
 
   wire dmem_req;
@@ -68,6 +74,13 @@ module rv32i_soc #(
   wire uart_tx_busy;
   wire uart_tx_valid;
   wire [7:0] uart_tx_data;
+
+  wire spi_req;
+  wire spi_we;
+  wire [3:0] spi_be;
+  wire [31:0] spi_addr;
+  wire [31:0] spi_wdata;
+  wire [31:0] spi_rdata;
 
   wire [31:0] imem_addr;
   wire [31:0] imem_rdata;
@@ -138,6 +151,21 @@ module rv32i_soc #(
       .tx_pin(uart_tx_pin)
   );
 
+  spi_master_mmio u_spi_master_mmio (
+      .clk(clk),
+      .rst_n(rst_n),
+      .req(spi_req),
+      .we(spi_we),
+      .be(spi_be),
+      .addr(spi_addr),
+      .wdata(spi_wdata),
+      .rdata(spi_rdata),
+      .spi_miso(spi_miso),
+      .spi_sclk(spi_sclk),
+      .spi_mosi(spi_mosi),
+      .spi_cs_n(spi_cs_n)
+  );
+
   simple_rom #(
       .ROM_FILE(ROM_FILE)
   ) u_rom (
@@ -184,7 +212,14 @@ module rv32i_soc #(
       .uart_be(uart_be),
       .uart_addr(uart_addr),
       .uart_wdata(uart_wdata),
-      .uart_rdata(uart_rdata)
+      .uart_rdata(uart_rdata),
+
+      .spi_req(spi_req),
+      .spi_we(spi_we),
+      .spi_be(spi_be),
+      .spi_addr(spi_addr),
+      .spi_wdata(spi_wdata),
+      .spi_rdata(spi_rdata)
   );
 
   rv32i_core #(

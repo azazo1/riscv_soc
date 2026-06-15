@@ -44,6 +44,17 @@ module rv32i_soc_mmio_vlg_tst;
   wire [7:0] uart_tx_data;
   reg uart_tx_seen;
 
+  wire spi_req;
+  wire spi_we;
+  wire [3:0] spi_be;
+  wire [31:0] spi_addr;
+  wire [31:0] spi_wdata;
+  wire [31:0] spi_rdata;
+  reg spi_miso;
+  wire spi_sclk;
+  wire spi_mosi;
+  wire spi_cs_n;
+
   reg [9:0] sw;
   reg [3:0] key;
   wire [9:0] ledr;
@@ -107,7 +118,13 @@ module rv32i_soc_mmio_vlg_tst;
       .uart_be(uart_be),
       .uart_addr(uart_addr),
       .uart_wdata(uart_wdata),
-      .uart_rdata(uart_rdata)
+      .uart_rdata(uart_rdata),
+      .spi_req(spi_req),
+      .spi_we(spi_we),
+      .spi_be(spi_be),
+      .spi_addr(spi_addr),
+      .spi_wdata(spi_wdata),
+      .spi_rdata(spi_rdata)
   );
 
   assign rom_rdata = 32'h0000_0013;
@@ -165,6 +182,21 @@ module rv32i_soc_mmio_vlg_tst;
       .rdata(uart_rdata),
       .tx_valid(uart_tx_valid),
       .tx_data(uart_tx_data)
+  );
+
+  spi_master_mmio u_spi (
+      .clk(clk),
+      .rst_n(rst_n),
+      .req(spi_req),
+      .we(spi_we),
+      .be(spi_be),
+      .addr(spi_addr),
+      .wdata(spi_wdata),
+      .rdata(spi_rdata),
+      .spi_miso(spi_miso),
+      .spi_sclk(spi_sclk),
+      .spi_mosi(spi_mosi),
+      .spi_cs_n(spi_cs_n)
   );
 
   initial begin
@@ -256,7 +288,16 @@ module rv32i_soc_mmio_vlg_tst;
       32'h0000_007c: imem_rdata = instr_i(12'h055, 5'd0, 3'b000, 5'd19, OPCODE_OP_IMM); // addi x19, x0, 0x55, 准备 UART 发送字节
       32'h0000_0080: imem_rdata = instr_s(12'd256, 5'd19, 5'd1, 3'b010); // sw x19, 256(x1), 写 UART_TXDATA
       32'h0000_0084: imem_rdata = instr_i(12'd260, 5'd1, 3'b010, 5'd20, OPCODE_LOAD); // lw x20, 260(x1), 读取 UART_STATUS
-      32'h0000_0088: imem_rdata = instr_b(13'd0, 5'd0, 5'd0, 3'b000); // beq x0, x0, 0, 原地循环停住
+      32'h0000_0088: imem_rdata = instr_i(12'd1, 5'd0, 3'b000, 5'd21, OPCODE_OP_IMM); // addi x21, x0, 1, 准备 SPI_DIV
+      32'h0000_008c: imem_rdata = instr_s(12'd528, 5'd21, 5'd1, 3'b010); // sw x21, 528(x1), 设置 SPI_DIV
+      32'h0000_0090: imem_rdata = instr_s(12'd524, 5'd0, 5'd1, 3'b010); // sw x0, 524(x1), 拉低 SPI CS_N
+      32'h0000_0094: imem_rdata = instr_i(12'h05a, 5'd0, 3'b000, 5'd23, OPCODE_OP_IMM); // addi x23, x0, 0x5a, 准备 SPI 发送字节
+      32'h0000_0098: imem_rdata = instr_s(12'd512, 5'd23, 5'd1, 3'b010); // sw x23, 512(x1), 写 SPI_TXDATA 启动传输
+      32'h0000_009c: imem_rdata = instr_i(12'd520, 5'd1, 3'b010, 5'd24, OPCODE_LOAD); // lw x24, 520(x1), 读取 SPI_STATUS
+      32'h0000_00a0: imem_rdata = instr_i(12'd1, 5'd24, 3'b111, 5'd24, OPCODE_OP_IMM); // andi x24, x24, 1, 只保留 ready bit
+      32'h0000_00a4: imem_rdata = instr_b(13'h1ff8, 5'd0, 5'd24, 3'b000); // beq x24, x0, -8, 等待 SPI ready
+      32'h0000_00a8: imem_rdata = instr_i(12'd516, 5'd1, 3'b010, 5'd25, OPCODE_LOAD); // lw x25, 516(x1), 读取 SPI_RXDATA
+      32'h0000_00ac: imem_rdata = instr_b(13'd0, 5'd0, 5'd0, 3'b000); // beq x0, x0, 0, 原地循环停住
       default: imem_rdata = 32'h0000_0013;
     endcase
   end
@@ -280,13 +321,14 @@ module rv32i_soc_mmio_vlg_tst;
     gpio0_in = 36'hf_1234_5678;
     gpio1_in = 36'h5_dead_beef;
     uart_tx_seen = 1'b0;
+    spi_miso = 1'b1;
 
     #1;
     rst_n = 1'b0;
     #20;
     rst_n = 1'b1;
 
-    repeat (60) @(posedge clk);
+    repeat (100) @(posedge clk);
     #1;
 
     expect_value({22'b0, ledr}, 32'h0000_0155, 32'd1);
@@ -310,6 +352,10 @@ module rv32i_soc_mmio_vlg_tst;
     expect_value({24'b0, uart_tx_data}, 32'h0000_0055, 32'd19);
     expect_value({31'b0, uart_tx_seen}, 32'h0000_0001, 32'd20);
     expect_value(u_core.u_regfile.regs[20], 32'h0000_0001, 32'd21);
+    expect_value(u_core.u_regfile.regs[24], 32'h0000_0001, 32'd22);
+    expect_value(u_core.u_regfile.regs[25], 32'h0000_00ff, 32'd23);
+    expect_value({31'b0, spi_cs_n}, 32'h0000_0000, 32'd24);
+    expect_value({31'b0, spi_sclk}, 32'h0000_0000, 32'd25);
 
     $display("rv32i_soc_mmio test passed");
     $finish;

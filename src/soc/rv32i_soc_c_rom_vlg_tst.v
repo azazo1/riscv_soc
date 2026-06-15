@@ -19,6 +19,9 @@ module rv32i_soc_c_rom_vlg_tst;
   wire [35:0] gpio1_out;
   wire [35:0] gpio1_oe;
   wire uart_tx_pin;
+  wire spi_sclk;
+  wire spi_mosi;
+  wire spi_cs_n;
 
   localparam TEST_CLKS_PER_BIT = 4;
 
@@ -43,7 +46,11 @@ module rv32i_soc_c_rom_vlg_tst;
       .gpio0_oe(gpio0_oe),
       .gpio1_out(gpio1_out),
       .gpio1_oe(gpio1_oe),
-      .uart_tx_pin(uart_tx_pin)
+      .uart_tx_pin(uart_tx_pin),
+      .spi_miso(1'b1),
+      .spi_sclk(spi_sclk),
+      .spi_mosi(spi_mosi),
+      .spi_cs_n(spi_cs_n)
   );
 
   initial begin

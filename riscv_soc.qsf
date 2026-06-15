@@ -25,6 +25,7 @@ set_global_assignment -name VERILOG_FILE src/soc/rv32i_soc.v
 set_global_assignment -name VERILOG_FILE src/soc/simple_bus.v
 set_global_assignment -name VERILOG_FILE src/soc/simple_ram.v
 set_global_assignment -name VERILOG_FILE src/soc/simple_rom.v
+set_global_assignment -name VERILOG_FILE src/soc/spi_master_mmio.v
 set_global_assignment -name VERILOG_FILE src/soc/uart_tx.v
 set_global_assignment -name VERILOG_FILE src/soc/uart_tx_mmio.v
 set_global_assignment -name SDC_FILE riscv_soc.sdc
