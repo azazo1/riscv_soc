@@ -18,7 +18,7 @@ module uart_tx_vlg_tst;
       .tx_data(tx_data),
       .tx_ready(tx_ready),
       .tx_busy(tx_busy),
-      .uart_tx(uart_tx_pin)
+      .tx_pin(uart_tx_pin)
   );
 
   initial begin

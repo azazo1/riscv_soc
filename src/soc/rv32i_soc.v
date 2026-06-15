@@ -130,7 +130,7 @@ module rv32i_soc #(
       .tx_data(uart_tx_data),
       .tx_ready(uart_tx_ready),
       .tx_busy(uart_tx_busy),
-      .uart_tx(uart_tx_pin)
+      .tx_pin(uart_tx_pin)
   );
 
   simple_rom u_rom (

@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // 简单 UART TX
-// 空闲时 uart_tx 输出 1, 发送时依次输出 start bit, 8 个 data bit, stop bit.
+// 空闲时 TX 输出 1, 发送时依次输出 start bit, 8 个 data bit, stop bit.
 module uart_tx #(
     // CLKS_PER_BIT = clk_hz / baud, example: 50 MHz / 115200 ~= 434.
     parameter CLKS_PER_BIT = 434
@@ -12,7 +12,7 @@ module uart_tx #(
     input wire [7:0] tx_data,
     output wire tx_ready,
     output wire tx_busy,
-    output wire uart_tx
+    output wire tx_pin
 );
 
   localparam STATE_IDLE = 2'd0;
@@ -28,7 +28,7 @@ module uart_tx #(
 
   assign tx_ready = (state == STATE_IDLE);
   assign tx_busy  = (state != STATE_IDLE);
-  assign uart_tx  = tx_reg;
+  assign tx_pin   = tx_reg;
 
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
