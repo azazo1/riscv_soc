@@ -1,6 +1,9 @@
 `timescale 1ns / 1ps
 
-// 一个简单的 ROM 实现, 用于读取指令
+// 一个简单的 ROM 实现, 用于读取指令.
+// 当前内容是上板 demo 程序:
+//   1. 初始化 HEX 段码, HEX0 到 HEX7 分别显示 0 到 7.
+//   2. 循环读取 SW, 并把 SW[9:0] 镜像到 LEDR[9:0].
 module simple_rom (
     input  wire [31:0] addr,
     output reg  [31:0] rdata
@@ -8,15 +11,16 @@ module simple_rom (
 
   always @(*) begin
     case (addr & ~(32'b11))
-      32'h0000_0000: rdata = 32'h0050_0093;  // addi x1, x0, 5 ; x1 = 5
-      32'h0000_0004: rdata = 32'h0070_0113;  // addi x2, x0, 7 ; x2 = 7
-      32'h0000_0008: rdata = 32'h0020_81b3;  // add x3, x1, x2 ; x3 = x1 + x2 = 12
-      32'h0000_000c: rdata = 32'h0030_2023;  // sw x3, 0(x0) ; 把 12 写入 RAM 地址 0
-      32'h0000_0010: rdata = 32'h0000_2203;  // lw x4, 0(x0) ; 从 RAM 地址 0 读回到 x4
-      32'h0000_0014: rdata = 32'h0041_8463;  // beq x3, x4, +8 ; 如果读写正确, 跳过失败
-      32'h0000_0018: rdata = 32'h0010_0293;  // add x5, x0, 1 ; 失败标记
-      32'h0000_001c: rdata = 32'h0020_0293;  // addi x1, x0, 2 ; 成功标记
-      32'h0000_0020: rdata = 32'h0000_0063;  // beq x0, x0, 0 ; 原地死循环, 停住
+      32'h0000_0000: rdata = 32'h0100_00b7;  // lui x1, 0x01000, x1 = 0x0100_0000
+      32'h0000_0004: rdata = 32'h3024_8137;  // lui x2, 0x30248
+      32'h0000_0008: rdata = 32'h9401_0113;  // addi x2, x2, 0x940, x2 = 0x3024_7940
+      32'h0000_000c: rdata = 32'h0020_a623;  // sw x2, 12(x1), 写 HEX0 到 HEX3
+      32'h0000_0010: rdata = 32'h7802_11b7;  // lui x3, 0x78021
+      32'h0000_0014: rdata = 32'h2191_8193;  // addi x3, x3, 0x219, x3 = 0x7802_1219
+      32'h0000_0018: rdata = 32'h0030_a823;  // sw x3, 16(x1), 写 HEX4 到 HEX7
+      32'h0000_001c: rdata = 32'h0040_a203;  // lw x4, 4(x1), 读取 SW
+      32'h0000_0020: rdata = 32'h0040_a023;  // sw x4, 0(x1), 写 LEDR
+      32'h0000_0024: rdata = 32'hfe00_0ce3;  // beq x0, x0, -8, 回到读取 SW
       default: rdata = 32'h0000_0013;  // nop
     endcase
   end

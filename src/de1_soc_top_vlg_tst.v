@@ -58,16 +58,17 @@ module de1_soc_top_vlg_tst;
     expect_value({25'b0, hex0}, 32'h0000_007f, 32'd3);
 
     key[0] = 1'b1;  // 松开 KEY0 后 CPU 开始从 ROM 执行.
-    repeat (20) @(posedge clk);
+    repeat (30) @(posedge clk);
     #1;
 
-    expect_value(dut.u_soc.u_core.u_regfile.regs[3], 32'd12, 32'd4);
-    expect_value(dut.u_soc.u_core.u_regfile.regs[4], 32'd12, 32'd5);
-    expect_value(dut.u_soc.u_core.u_pc_reg.pc, 32'h0000_0020, 32'd6);
+    expect_value({22'b0, ledr}, 32'h0000_0155, 32'd4);
+    expect_value(dut.u_soc.u_core.u_regfile.regs[4], 32'h0000_0155, 32'd5);
+    expect_value({1'b0, hex3, 1'b0, hex2, 1'b0, hex1, 1'b0, hex0}, 32'h3024_7940, 32'd6);
+    expect_value({1'b0, hex7, 1'b0, hex6, 1'b0, hex5, 1'b0, hex4}, 32'h7802_1219, 32'd7);
 
     key[0] = 1'b0;  // 再次按下 KEY0 时 PC 回到 RESET_PC.
     #10;
-    expect_value(dut.u_soc.u_core.u_pc_reg.pc, 32'h0000_0000, 32'd7);
+    expect_value(dut.u_soc.u_core.u_pc_reg.pc, 32'h0000_0000, 32'd8);
 
     $display("de1_soc_top test passed");
     $finish;

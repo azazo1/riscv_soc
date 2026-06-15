@@ -45,6 +45,13 @@ rv32i_core
 
 后续有固件构建流程后, 再把写死指令替换为 `$readmemh`.
 
+当前 ROM 已经放入一个上板 demo:
+
+- 初始化 HEX0 到 HEX7, 让数码管显示固定内容.
+- 循环读取 SW, 并把 `SW[9:0]` 镜像到 `LEDR[9:0]`.
+
+这样上板后只要拨动开关, 就能直接看到 LED 变化. 数码管则用于确认 ROM 取指和 MMIO 写入都已经跑通.
+
 ### `simple_ram`
 
 `simple_ram` 是数据存储器.
@@ -157,7 +164,7 @@ HEX 寄存器按 byte 拆分. 例如 `HEX_LOW` 中:
 
 1. 给 `de1_soc_top` 增加很小的 wrapper 测试.
 2. 准备上板用 QSF, 先只映射时钟, KEY, SW, LEDR, HEX.
-3. 把 `simple_rom` 中的小程序换成 MMIO demo 程序, 让 LED 或 HEX 上板可见.
+3. 观察当前 ROM demo 的上板效果, 确认 LED 镜像和 HEX 显示都正常.
 4. 再考虑把 ROM 改为 `$readmemh`, 建立软件构建流程.
 
 ## 测试边界

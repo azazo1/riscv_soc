@@ -50,23 +50,20 @@ module rv32i_soc_vlg_tst;
 
   initial begin
     rst_n = 1'b1;
-    sw = 10'b0;
+    sw = 10'h2a5;
     key = 4'b1111;
     #1;
     rst_n = 1'b0;
     #20;
     rst_n = 1'b1;
 
-    repeat (20) @(posedge clk);
+    repeat (30) @(posedge clk);
     #1;
 
-    expect_value(dut.u_core.u_regfile.regs[1], 32'd5, 32'd1);
-    expect_value(dut.u_core.u_regfile.regs[2], 32'd7, 32'd2);
-    expect_value(dut.u_core.u_regfile.regs[3], 32'd12, 32'd3);
-    expect_value(dut.u_core.u_regfile.regs[4], 32'd12, 32'd4);
-    expect_value(dut.u_core.u_regfile.regs[5], 32'd2, 32'd5);
-    expect_value(dut.u_ram.ram_data[0], 32'd12, 32'd6);
-    expect_value(dut.u_core.u_pc_reg.pc, 32'h0000_0020, 32'd7);
+    expect_value({22'b0, ledr}, 32'h0000_02a5, 32'd1);
+    expect_value(dut.u_core.u_regfile.regs[4], 32'h0000_02a5, 32'd2);
+    expect_value({1'b0, hex3, 1'b0, hex2, 1'b0, hex1, 1'b0, hex0}, 32'h3024_7940, 32'd3);
+    expect_value({1'b0, hex7, 1'b0, hex6, 1'b0, hex5, 1'b0, hex4}, 32'h7802_1219, 32'd4);
 
     $display("rv32i_soc test passed");
     $finish;
