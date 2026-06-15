@@ -15,4 +15,3 @@ output_files/
 *.smsg
 *.qmsg
 /c5_pin_model_dump.txt
-/greybox_tmp
