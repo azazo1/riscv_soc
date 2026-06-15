@@ -25,7 +25,7 @@ module regfile (
 
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
-      for (i = 0; i < 32; ++i) begin
+      for (i = 0; i < 32; i = i + 1) begin
         regs[i] <= 32'b0;
       end
     end else begin
