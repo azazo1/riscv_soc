@@ -17,7 +17,7 @@ module de1_soc_top (
 
   rv32i_soc u_soc (
       .clk(clk),
-      .rst_n(key[0]),  // 暂时将 KEY0 作为 rst_n.
+      .rst_n(~sw[9]),  // 使用 SW9 作为板级复位, SW9=1 时内部 rst_n=0.
       .sw(sw),
       .key(key),
       .ledr(ledr),

@@ -137,7 +137,7 @@ HEX 寄存器按 byte 拆分. 例如 `HEX_LOW` 中:
 
 - 负责接收板级时钟, 按键, 开关, LED, HEX 端口.
 - 内部只实例化 `rv32i_soc`.
-- 当前用 `key[0]` 作为 `rst_n`.
+- 当前用 `sw[9]` 作为板级复位, SW9=1 时复位, SW9=0 时运行.
 - `key[3:0]` 同时传给 SoC 的 GPIO KEY 输入.
 
 这种写法的优点是 SoC 逻辑保持通用, 板级端口名, reset 来源, 后续 PLL, reset sync, SDRAM 引脚都可以放在 wrapper 层.

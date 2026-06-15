@@ -43,17 +43,16 @@ module de1_soc_top_vlg_tst;
   endtask
 
   initial begin
-    sw = 10'h155;
+    sw = 10'h355;
     key = 4'b1111;
 
     #1;
-    key[0] = 1'b0;  // KEY0 低电平时复位内部 SoC.
     #20;
     expect_value(dut.u_soc.u_core.u_pc_reg.pc, 32'h0000_0000, 32'd1);
     expect_value({22'b0, ledr}, 32'h0000_0000, 32'd2);
     expect_value({25'b0, hex0}, 32'h0000_007f, 32'd3);
 
-    key[0] = 1'b1;  // 松开 KEY0 后 CPU 开始从 ROM 执行.
+    sw[9] = 1'b0;  // SW9=0 后 CPU 开始从 ROM 执行.
     repeat (30) @(posedge clk);
     #1;
 
@@ -62,7 +61,7 @@ module de1_soc_top_vlg_tst;
     expect_value({1'b0, hex3, 1'b0, hex2, 1'b0, hex1, 1'b0, hex0}, 32'h3024_7940, 32'd6);
     expect_value({16'b0, 1'b0, hex5, 1'b0, hex4}, 32'h0000_1219, 32'd7);
 
-    key[0] = 1'b0;  // 再次按下 KEY0 时 PC 回到 RESET_PC.
+    sw[9] = 1'b1;  // SW9=1 时 PC 回到 RESET_PC.
     #10;
     expect_value(dut.u_soc.u_core.u_pc_reg.pc, 32'h0000_0000, 32'd8);
 
