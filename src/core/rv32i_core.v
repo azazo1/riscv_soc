@@ -9,6 +9,7 @@ module rv32i_core #(
     // instruction memory (imem)
     output wire [31:0] imem_addr,  // 指令存储器地址
     input  wire [31:0] imem_rdata, // 指令存储器读数据
+    input  wire        imem_ready, // 指令存储器读数据有效
 
     // data memory (dmem)
     output wire        dmem_req,    // 数据存储器请求
@@ -73,11 +74,11 @@ module rv32i_core #(
     endcase
   end
 
-  assign dmem_req  = mem_read || mem_write;
+  assign dmem_req  = (mem_read || mem_write) && imem_ready;
   assign dmem_we   = mem_write;
   assign dmem_addr = alu_result;
   assign dmem_wait = dmem_req && !dmem_ready;
-  assign core_hold = dmem_wait;
+  assign core_hold = !imem_ready || dmem_wait;
 
   next_pc_unit u_next_pc_unit (
       .pc(imem_addr),

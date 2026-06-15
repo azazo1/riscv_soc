@@ -25,6 +25,7 @@ module rv32i_soc_mmio_vlg_tst;
   wire [31:0] ram_addr;
   wire [31:0] ram_wdata;
   wire [31:0] ram_rdata;
+  wire ram_ready;
 
   wire gpio_req;
   wire gpio_we;
@@ -91,6 +92,7 @@ module rv32i_soc_mmio_vlg_tst;
       .rst_n(rst_n),
       .imem_addr(imem_addr),
       .imem_rdata(imem_rdata),
+      .imem_ready(1'b1),
       .dmem_req(dmem_req),
       .dmem_we(dmem_we),
       .dmem_be(dmem_be),
@@ -118,6 +120,7 @@ module rv32i_soc_mmio_vlg_tst;
       .ram_addr(ram_addr),
       .ram_wdata(ram_wdata),
       .ram_rdata(ram_rdata),
+      .ram_ready(ram_ready),
       .gpio_req(gpio_req),
       .gpio_we(gpio_we),
       .gpio_be(gpio_be),
@@ -150,7 +153,10 @@ module rv32i_soc_mmio_vlg_tst;
 
   assign rom_rdata = 32'h0000_0013;
 
-  simple_ram u_ram (
+  simple_dual_port_ram #(
+      .RAM_WORDS(256),
+      .RAM_WORD_ADDR_BITS(8)
+  ) u_ram (
       .clk(clk),
       .rst_n(rst_n),
       .req(ram_req),
@@ -158,7 +164,12 @@ module rv32i_soc_mmio_vlg_tst;
       .be(ram_be),
       .addr(ram_addr),
       .wdata(ram_wdata),
-      .rdata(ram_rdata)
+      .rdata(ram_rdata),
+      .ready(ram_ready),
+      .imem_req(1'b0),
+      .imem_addr(32'b0),
+      .imem_rdata(),
+      .imem_ready()
   );
 
   gpio_mmio u_gpio (

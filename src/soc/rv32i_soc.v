@@ -76,6 +76,7 @@ module rv32i_soc #(
   wire [31:0] ram_addr;
   wire [31:0] ram_wdata;
   wire [31:0] ram_rdata;
+  wire ram_ready;
 
   wire rom_req;
   wire [31:0] rom_addr;
@@ -128,9 +129,11 @@ module rv32i_soc #(
 
   wire [31:0] imem_addr;
   wire [31:0] imem_rdata;
+  wire imem_ready;
   wire [31:0] rom_imem_rdata;
   wire [31:0] ram_imem_addr;
   wire [31:0] ram_imem_rdata;
+  wire ram_imem_ready;
 
   localparam ROM_LIMIT = 32'h0000_8000;
   localparam RAM_BASE = 32'h0000_8000;
@@ -142,6 +145,8 @@ module rv32i_soc #(
   assign ram_imem_addr = imem_addr - RAM_BASE;
   assign imem_rdata = imem_rom_hit ? rom_imem_rdata :
                       imem_ram_hit ? ram_imem_rdata : 32'h0000_0013;
+  assign imem_ready = imem_rom_hit ? 1'b1 :
+                      imem_ram_hit ? ram_imem_ready : 1'b1;
 
 
   simple_dual_port_ram u_ram (
@@ -153,9 +158,11 @@ module rv32i_soc #(
       .addr(ram_addr),
       .wdata(ram_wdata),
       .rdata(ram_rdata),
+      .ready(ram_ready),
       .imem_req(imem_ram_hit),
       .imem_addr(ram_imem_addr),
-      .imem_rdata(ram_imem_rdata)
+      .imem_rdata(ram_imem_rdata),
+      .imem_ready(ram_imem_ready)
   );
 
   gpio_mmio u_gpio_mmio (
@@ -327,6 +334,7 @@ module rv32i_soc #(
       .ram_addr(ram_addr),
       .ram_wdata(ram_wdata),
       .ram_rdata(ram_rdata),
+      .ram_ready(ram_ready),
 
       .gpio_req(gpio_req),
       .gpio_we(gpio_we),
@@ -366,6 +374,7 @@ module rv32i_soc #(
 
       .imem_addr (imem_addr),
       .imem_rdata(imem_rdata),
+      .imem_ready(imem_ready),
 
       .dmem_req(dmem_req),
       .dmem_we(dmem_we),

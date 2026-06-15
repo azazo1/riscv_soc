@@ -25,6 +25,7 @@ module simple_bus (
     output wire [31:0] ram_addr,
     output wire [31:0] ram_wdata,
     input wire [31:0] ram_rdata,
+    input wire ram_ready,
 
     // 转发请求到 gpio
     output wire gpio_req,
@@ -130,6 +131,8 @@ module simple_bus (
   always @(*) begin
     if (!req) begin
       ready = 1'b1;
+    end else if (ram_req) begin
+      ready = ram_ready;
     end else if (sdram_req) begin
       ready = sdram_ready;
     end else begin

@@ -34,6 +34,7 @@ module rv32i_core_vlg_tst;
       .rst_n(rst_n),
       .imem_addr(imem_addr),
       .imem_rdata(imem_rdata),
+      .imem_ready(1'b1),
       .dmem_req(dmem_req),
       .dmem_we(dmem_we),
       .dmem_be(dmem_be),

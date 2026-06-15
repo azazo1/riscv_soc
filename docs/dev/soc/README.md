@@ -95,11 +95,11 @@ SD 启动固件是 `firmware/bootloader/main.c`. 运行 `just firmware-bootloade
 
 `rv32i_soc` 当前使用 `simple_dual_port_ram`.
 
-- data 口给 `simple_bus` 使用, 支持组合读和同步写.
-- imem 口给 CPU 从 RAM 取指使用, 只读.
+- data 口给 `simple_bus` 使用, 支持同步读写, 通过 `ready` 表示访问完成.
+- imem 口给 CPU 从 RAM 取指使用, 只读, 通过 `imem_ready` 表示指令有效.
 - RAM 本地地址从 0 开始, SoC 地址 `0x0000_8000` 对应 RAM 本地 word 0.
 - 默认容量是 8192 words, 也就是 32 KiB.
-- reset 不清空 RAM, 避免综合出很大的复位清零逻辑.
+- reset 不清空 RAM, 避免综合出很大的复位清零逻辑, 也更容易推断为 M10K.
 
 ### `simple_bus`
 
@@ -112,9 +112,9 @@ SD 启动固件是 `firmware/bootloader/main.c`. 运行 `just firmware-bootloade
 - 当地址落在 UART MMIO 区间时, 转发到 `uart_tx_mmio`.
 - 当地址落在 SPI MMIO 区间时, 转发到 `spi_master_mmio`.
 - 读数据从被命中的设备返回给 core.
-- `ready` 表示当前访问完成. 普通 RAM/MMIO 直接为 1, SDRAM 访问会等待控制器完成.
+- `ready` 表示当前访问完成. MMIO 直接为 1, RAM 和 SDRAM 访问会等待对应模块完成.
 
-当前 RAM 从 `0x0000_8000` 开始译码. bus 会把传给 RAM 的地址减去 `0x0000_8000`, 所以 `simple_ram` 内部仍然使用从 0 开始的本地地址. GPIO 和 UART 使用更小的 MMIO 窗口.
+当前 RAM 从 `0x0000_8000` 开始译码. bus 会把传给 RAM 的地址减去 `0x0000_8000`, 所以 `simple_dual_port_ram` 内部仍然使用从 0 开始的本地地址. GPIO 和 UART 使用更小的 MMIO 窗口.
 
 | 地址范围 | 目标 | 说明 |
 | --- | --- | --- |

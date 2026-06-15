@@ -20,6 +20,7 @@ module simple_bus_vlg_tst;
   wire [31:0] ram_addr;
   wire [31:0] ram_wdata;
   reg [31:0] ram_rdata;
+  reg ram_ready;
 
   wire gpio_req;
   wire gpio_we;
@@ -71,6 +72,7 @@ module simple_bus_vlg_tst;
       .ram_addr(ram_addr),
       .ram_wdata(ram_wdata),
       .ram_rdata(ram_rdata),
+      .ram_ready(ram_ready),
       .gpio_req(gpio_req),
       .gpio_we(gpio_we),
       .gpio_be(gpio_be),
@@ -131,6 +133,7 @@ module simple_bus_vlg_tst;
     input [31:0] test_addr;
     input [31:0] test_wdata;
     input [31:0] test_ram_rdata;
+    input test_ram_ready;
     input [31:0] check_id;
     begin
       req = 1'b1;
@@ -139,12 +142,13 @@ module simple_bus_vlg_tst;
       addr = test_addr;
       wdata = test_wdata;
       ram_rdata = test_ram_rdata;
+      ram_ready = test_ram_ready;
       #1;
 
       if (rom_req !== 1'b0 || ram_req !== 1'b1 || gpio_req !== 1'b0 || uart_req !== 1'b0 || spi_req !== 1'b0 ||
           sdram_req !== 1'b0 ||
           ram_we !== test_we || ram_be !== test_be ||
-          ram_addr !== (test_addr - RAM_BASE) || ram_wdata !== test_wdata || rdata !== test_ram_rdata || ready !== 1'b1) begin
+          ram_addr !== (test_addr - RAM_BASE) || ram_wdata !== test_wdata || rdata !== test_ram_rdata || ready !== test_ram_ready) begin
         $display("check %0d ram hit failed", check_id);
         $display("ram_req=%b ram_we=%b ram_be=%b ram_addr=%h ram_wdata=%h rdata=%h",
                  ram_req, ram_we, ram_be, ram_addr, ram_wdata, rdata);
@@ -301,6 +305,7 @@ module simple_bus_vlg_tst;
     wdata = 32'b0;
     rom_rdata = 32'b0;
     ram_rdata = 32'b0;
+    ram_ready = 1'b1;
     gpio_rdata = 32'b0;
     uart_rdata = 32'b0;
     spi_rdata = 32'b0;
@@ -312,10 +317,10 @@ module simple_bus_vlg_tst;
     expect_rom_hit(32'h0000_0000, 32'h1122_3344, 32'd1);
     expect_rom_hit(32'h0000_7ffc, 32'haabb_ccdd, 32'd2);
     expect_ram_miss(32'h0000_0000, 32'd3);
-    expect_ram_hit(1'b0, 4'b1111, 32'h0000_8000, 32'h0000_0000, 32'h1122_3344, 32'd4);
-    expect_ram_hit(1'b1, 4'b0101, 32'h0000_800c, 32'h5566_7788, 32'h99aa_bbcc, 32'd5);
-    expect_ram_hit(1'b0, 4'b1111, 32'h0000_8400, 32'h0000_0000, 32'h1234_abcd, 32'd6);
-    expect_ram_hit(1'b0, 4'b1111, 32'h0000_fffc, 32'h0000_0000, 32'hdead_beef, 32'd7);
+    expect_ram_hit(1'b0, 4'b1111, 32'h0000_8000, 32'h0000_0000, 32'h1122_3344, 1'b0, 32'd4);
+    expect_ram_hit(1'b1, 4'b0101, 32'h0000_800c, 32'h5566_7788, 32'h99aa_bbcc, 1'b1, 32'd5);
+    expect_ram_hit(1'b0, 4'b1111, 32'h0000_8400, 32'h0000_0000, 32'h1234_abcd, 1'b1, 32'd6);
+    expect_ram_hit(1'b0, 4'b1111, 32'h0000_fffc, 32'h0000_0000, 32'hdead_beef, 1'b1, 32'd7);
     expect_ram_miss(32'h0001_0000, 32'd8);
 
     expect_gpio_hit(1'b0, 4'b1111, 32'h0100_0000, 32'h0000_0000, 32'h1357_2468, 32'd9);
