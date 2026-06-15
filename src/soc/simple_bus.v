@@ -18,28 +18,39 @@ module simple_bus (
     output wire [3:0] ram_be,
     output wire [31:0] ram_addr,
     output wire [31:0] ram_wdata,
-    input wire [31:0] ram_rdata
+    input wire [31:0] ram_rdata,
+
+    // 转发请求到 gpio
+    output wire gpio_req,
+    output wire gpio_we,
+    output wire [3:0] gpio_be,
+    output wire [31:0] gpio_addr,
+    output wire [31:0] gpio_wdata,
+    input wire [31:0] gpio_rdata
 );
 
   // 暂时定一个简单的 memory map
   // 0x0000_0000 - 0x00ff_ffff RAM // 但是暂时 RAM 容量只有 256 * 4 = 1024 字节
-  // 0x1000_0000 - 0x1000_00ff MMIO
+  // 0x0100_0000 - 0x01ff_ffff MMIO-GPIO // 内部具体映射查看 gpio_mmio.v
 
-  wire ram_hit;
-
-  assign ram_hit = addr[31:24] == 8'b0;
-  assign ram_req = req && ram_hit;
+  assign ram_req = req && (addr[31:24] == 8'b0);
   assign ram_we = we;
   assign ram_be = be;
   assign ram_addr = addr;
   assign ram_wdata = wdata;
 
+  assign gpio_req = req && (addr[31:24] == 8'b1);
+  assign gpio_we = we;
+  assign gpio_be = be;
+  assign gpio_addr = addr;
+  assign gpio_wdata = wdata;
+
   always @(*) begin
-    if (ram_req) begin  // 不能只看 ram_hit, 因为 req 为 0 的时候总线应该为空闲.
+    if (ram_req) begin  // 不能只看 ram_hit (addr[31:24] == 8'b0) 而不看 req, 因为 req 为 0 的时候总线应该为空闲.
       rdata = ram_rdata;
-    end else begin  // todo MMIO
-      rdata = 32'b0;
-    end
+    end else if (gpio_req) begin
+      rdata = gpio_rdata;
+    end else rdata = 32'b0;
   end
 
 endmodule

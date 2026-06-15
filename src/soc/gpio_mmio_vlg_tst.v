@@ -102,27 +102,27 @@ module gpio_mmio_vlg_tst;
       $fatal;
     end
 
-    expect_read(32'h1000_0004, {22'b0, sw}, 32'd1);
-    expect_read(32'h1000_0008, {28'b0, key}, 32'd2);
+    expect_read(32'h0100_0004, {22'b0, sw}, 32'd1);
+    expect_read(32'h0100_0008, {28'b0, key}, 32'd2);
 
-    write_reg(32'h1000_0000, 32'h0000_0155, 4'b0011);
-    expect_read(32'h1000_0000, 32'h0000_0155, 32'd3);
+    write_reg(32'h0100_0000, 32'h0000_0155, 4'b0011);
+    expect_read(32'h0100_0000, 32'h0000_0155, 32'd3);
 
-    write_reg(32'h1000_0000, 32'h0000_0200, 4'b0010);
-    expect_read(32'h1000_0000, 32'h0000_0255, 32'd4);
+    write_reg(32'h0100_0000, 32'h0000_0200, 4'b0010);
+    expect_read(32'h0100_0000, 32'h0000_0255, 32'd4);
 
-    write_reg(32'h1000_000c, 32'h3f_06_5b_4f, 4'b1111);
-    expect_read(32'h1000_000c, 32'h3f_06_5b_4f, 32'd5);
+    write_reg(32'h0100_000c, 32'h3f_06_5b_4f, 4'b1111);
+    expect_read(32'h0100_000c, 32'h3f_06_5b_4f, 32'd5);
 
-    write_reg(32'h1000_0010, 32'h66_6d_7d_07, 4'b1111);
-    expect_read(32'h1000_0010, 32'h66_6d_7d_07, 32'd6);
+    write_reg(32'h0100_0010, 32'h66_6d_7d_07, 4'b1111);
+    expect_read(32'h0100_0010, 32'h66_6d_7d_07, 32'd6);
 
-    write_reg(32'h1000_000c, 32'h00_00_00_40, 4'b0001);
-    expect_read(32'h1000_000c, 32'h3f_06_5b_40, 32'd7);
+    write_reg(32'h0100_000c, 32'h00_00_00_40, 4'b0001);
+    expect_read(32'h0100_000c, 32'h3f_06_5b_40, 32'd7);
 
     req = 1'b0;
     we = 1'b0;
-    addr = 32'h1000_0000;
+    addr = 32'h0100_0000;
     #1;
     if (rdata !== 32'b0) begin
       $display("idle read should return zero: got %h", rdata);

@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // GPIO 的 MMIO
-// 地址 0x1000_0000 -
+// 地址 0x0100_0000 - 0x01ff_ffff
 // 写入的时候保存 32bit 输出寄存器
 // 读取的时候返回寄存器当前值
 module gpio_mmio (
@@ -29,23 +29,26 @@ module gpio_mmio (
 );
 
   // 第一版, 针对 DE1-Soc 做的 GPIO 地址映射:
-  // 0x1000_0000 LEDR      R/W, 低 10 bit 有效
-  // 0x1000_0004 SW        R,   低 10 bit 有效
-  // 0x1000_0008 KEY       R,   低 4 bit 有效
-  // 0x1000_000c HEX_LOW   R/W, HEX0..HEX4, 每个 HEX 占 8 bit, 只用低 7 bit (似乎板载只支持 7 段)
-  // 0x1000_0010 HEX_HIGH  R/W, HEX4..HEX7, 每个 HEX 占 8 bit, 只用低 7 bit
+  // 0x0100_0000 LEDR      R/W, 低 10 bit 有效
+  // 0x0100_0004 SW        R,   低 10 bit 有效
+  // 0x0100_0008 KEY       R,   低 4 bit 有效
+  // 0x0100_000c HEX_LOW   R/W, HEX0..HEX3, 每个 HEX 占 8 bit, 只用低 7 bit (似乎板载只支持 7 段)
+  // 0x0100_0010 HEX_HIGH  R/W, HEX4..HEX7, 每个 HEX 占 8 bit, 只用低 7 bit
 
-  // MMIO 字地址 (addr[4:2] 对应 32-bit word 偏移)
-  localparam ADDR_LEDR = 3'b000;  // 0x1000_0000
-  localparam ADDR_SW = 3'b001;  // 0x1000_0004
-  localparam ADDR_KEY = 3'b010;  // 0x1000_0008
-  localparam ADDR_HEX_LOW = 3'b011;  // 0x1000_000c
-  localparam ADDR_HEX_HIGH = 3'b100;  // 0x1000_0010
+  // MMIO 字地址 (addr[7:2] 对应 32-bit word 偏移)
+  localparam ADDR_LEDR = 6'b000;  // 0x0100_0000
+  localparam ADDR_SW = 6'b001;  // 0x0100_0004
+  localparam ADDR_KEY = 6'b010;  // 0x0100_0008
+  localparam ADDR_HEX_LOW = 6'b011;  // 0x0100_000c
+  localparam ADDR_HEX_HIGH = 6'b100;  // 0x0100_0010
+
+  wire [15:0] addr_region = addr[23:8];
+  wire [ 5:0] addr_offset = addr[7:2];
 
   // 读取 组合逻辑
   always @(*) begin
-    if (req && !we) begin
-      case (addr[4:2])
+    if (req && !we && addr_region == 16'b0) begin
+      case (addr_offset)
         ADDR_LEDR: rdata = {22'b0, ledr[9:0]};
         ADDR_SW: rdata = {22'b0, sw[9:0]};
         ADDR_KEY: rdata = {28'b0, key};
@@ -72,8 +75,8 @@ module gpio_mmio (
       hex5 <= 7'h7f;
       hex6 <= 7'h7f;
       hex7 <= 7'h7f;
-    end else if (req && we) begin
-      case (addr[4:2])
+    end else if (req && we && addr_region == 16'b0) begin
+      case (addr_offset)
         ADDR_LEDR: begin
           if (be[0]) ledr[7:0] <= wdata[7:0];
           if (be[1]) ledr[9:8] <= wdata[9:8];
