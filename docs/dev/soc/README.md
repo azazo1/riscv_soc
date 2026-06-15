@@ -40,12 +40,15 @@ rv32i_core
 - 输出 `rdata`, 返回当前 PC 对应的 32 位指令.
 - `addr` 是字节地址.
 - RV32I 指令固定 4 字节, 所以可用 `addr[31:2]` 选择第几条指令.
-- 第一版可以用 `case` 写死小程序.
-- 默认指令建议返回 `32'h0000_0013`, 也就是 `addi x0, x0, 0`.
+- ROM 内容通过 `$readmemh` 从 hex 文件初始化.
+- 默认 `ROM_FILE` 是 `firmware/board_demo/board_demo.hex`.
+- `ROM_WORDS` 决定可访问的 word 数, 超出范围时返回 `32'h0000_0013`.
 
-后续有固件构建流程后, 再把写死指令替换为 `$readmemh`.
+固件源文件是 `firmware/board_demo/board_demo.S`. 运行 `just firmware-board-demo` 会重新生成 `firmware/board_demo/board_demo.hex`.
 
-当前 ROM 已经放入一个上板 demo:
+`firmware/test/simple_rom.hex` 只给 `simple_rom_vlg_tst` 使用, 不作为上板程序.
+
+当前上板 demo 的行为:
 
 - 初始化 HEX0 到 HEX5, 让数码管显示固定内容.
 - 循环读取 SW, 并把 `SW[9:0]` 镜像到 `LEDR[9:0]`.
@@ -160,10 +163,10 @@ HEX 寄存器按 byte 拆分. 例如 `HEX_LOW` 中:
 
 当前下一步建议:
 
-1. 给 `de1_soc_top` 增加很小的 wrapper 测试.
-2. 准备上板用 QSF, 先只映射时钟, KEY, SW, LEDR, HEX.
-3. 观察当前 ROM demo 的上板效果, 确认 LED 镜像和 HEX 显示都正常.
-4. 再考虑把 ROM 改为 `$readmemh`, 建立软件构建流程.
+1. 修改 `firmware/board_demo/board_demo.S`.
+2. 运行 `just firmware-board-demo`, 重新生成 `firmware/board_demo/board_demo.hex`.
+3. 运行 `just test-simple-rom`, `just test-rv32i-soc`, `just test-de1-soc-top`.
+4. 在 Quartus 中重新编译并上板观察 ROM demo 的效果.
 
 ## 测试边界
 
