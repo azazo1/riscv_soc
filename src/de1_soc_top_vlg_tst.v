@@ -13,6 +13,17 @@ module de1_soc_top_vlg_tst;
   wire [6:0] hex5;
   wire [35:0] gpio0;
   wire [35:0] gpio1;
+  wire [12:0] dram_addr;
+  wire [1:0] dram_ba;
+  wire dram_cas_n;
+  wire dram_cke;
+  wire dram_clk;
+  wire dram_cs_n;
+  wire [15:0] dram_dq;
+  wire dram_ldqm;
+  wire dram_ras_n;
+  wire dram_udqm;
+  wire dram_we_n;
   reg [35:0] gpio0_drive;
   reg [35:0] gpio1_drive;
   reg gpio0_drive_en;
@@ -35,7 +46,18 @@ module de1_soc_top_vlg_tst;
       .hex4(hex4),
       .hex5(hex5),
       .gpio0(gpio0),
-      .gpio1(gpio1)
+      .gpio1(gpio1),
+      .dram_addr(dram_addr),
+      .dram_ba(dram_ba),
+      .dram_cas_n(dram_cas_n),
+      .dram_cke(dram_cke),
+      .dram_clk(dram_clk),
+      .dram_cs_n(dram_cs_n),
+      .dram_dq(dram_dq),
+      .dram_ldqm(dram_ldqm),
+      .dram_ras_n(dram_ras_n),
+      .dram_udqm(dram_udqm),
+      .dram_we_n(dram_we_n)
   );
 
   initial begin

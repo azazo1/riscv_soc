@@ -18,7 +18,19 @@ module de1_soc_top #(
 
     inout wire [35:0] gpio0,
     // 实机上, gpio1[0] 位于右侧 40 针脚中的最左上的针脚.
-    inout wire [35:0] gpio1
+    inout wire [35:0] gpio1,
+
+    output wire [12:0] dram_addr,
+    output wire [1:0] dram_ba,
+    output wire dram_cas_n,
+    output wire dram_cke,
+    output wire dram_clk,
+    output wire dram_cs_n,
+    inout wire [15:0] dram_dq,
+    output wire dram_ldqm,
+    output wire dram_ras_n,
+    output wire dram_udqm,
+    output wire dram_we_n
 );
 
   wire [35:0] gpio0_out;
@@ -75,7 +87,18 @@ module de1_soc_top #(
       .spi_miso(spi_miso),
       .spi_sclk(spi_sclk),
       .spi_mosi(spi_mosi),
-      .spi_cs_n(spi_cs_n)
+      .spi_cs_n(spi_cs_n),
+      .sdram_addr(dram_addr),
+      .sdram_ba(dram_ba),
+      .sdram_cas_n(dram_cas_n),
+      .sdram_cke(dram_cke),
+      .sdram_clk(dram_clk),
+      .sdram_cs_n(dram_cs_n),
+      .sdram_dq(dram_dq),
+      .sdram_ldqm(dram_ldqm),
+      .sdram_ras_n(dram_ras_n),
+      .sdram_udqm(dram_udqm),
+      .sdram_we_n(dram_we_n)
   );
 
 endmodule

@@ -6,6 +6,7 @@ module pc_reg #(
 ) (
     input wire clk,
     input wire rst_n,
+    input wire hold,
     input wire [31:0] next_pc,
     output reg [31:0] pc
 );
@@ -17,7 +18,7 @@ module pc_reg #(
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       pc <= RESET_PC;
-    end else begin
+    end else if (!hold) begin
       pc <= next_pc;
     end
   end

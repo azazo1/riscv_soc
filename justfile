@@ -153,6 +153,9 @@ test-uart-tx-mmio:
 test-spi-master-mmio:
     @just run-verilog spi_master_mmio_vlg_tst
 
+test-sdram-simple-ctrl:
+    @just run-verilog sdram_simple_ctrl_vlg_tst
+
 test-rv32i-soc: firmware-board-demo
     @just run-verilog rv32i_soc_vlg_tst
 

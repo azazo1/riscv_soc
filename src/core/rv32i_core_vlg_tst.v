@@ -39,7 +39,8 @@ module rv32i_core_vlg_tst;
       .dmem_be(dmem_be),
       .dmem_addr(dmem_addr),
       .dmem_wdata(dmem_wdata),
-      .dmem_rdata(dmem_rdata)
+      .dmem_rdata(dmem_rdata),
+      .dmem_ready(1'b1)
   );
 
   // 100MHz clock

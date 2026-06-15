@@ -4,6 +4,7 @@ module pc_reg_vlg_tst;
 
   reg clk;
   reg rst_n;
+  reg hold;
   reg [31:0] next_pc;
   wire [31:0] pc;
 
@@ -14,6 +15,7 @@ module pc_reg_vlg_tst;
   ) dut (
       .clk(clk),
       .rst_n(rst_n),
+      .hold(hold),
       .next_pc(next_pc),
       .pc(pc)
   );
@@ -25,6 +27,7 @@ module pc_reg_vlg_tst;
 
   initial begin
     rst_n = 1'b1;
+    hold = 1'b0;
     next_pc = 32'h0000_1000;
     #1;
     rst_n = 1'b0;
@@ -50,7 +53,16 @@ module pc_reg_vlg_tst;
       $fatal;
     end
 
+    hold = 1'b1;
     next_pc = 32'h0000_1008;
+    @(posedge clk);
+    #1;
+    if (pc != 32'h0000_1004) begin
+      $display("pc hold failed: got %h", pc);
+      $fatal;
+    end
+
+    hold = 1'b0;
     @(posedge clk);
     #1;
     if (pc != 32'h0000_1008) begin

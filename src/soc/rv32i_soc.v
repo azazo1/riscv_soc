@@ -36,7 +36,20 @@ module rv32i_soc #(
     input wire spi_miso,
     output wire spi_sclk,
     output wire spi_mosi,
-    output wire spi_cs_n
+    output wire spi_cs_n,
+
+    // de1-soc onboard sdram.
+    output wire [12:0] sdram_addr,
+    output wire [1:0] sdram_ba,
+    output wire sdram_cas_n,
+    output wire sdram_cke,
+    output wire sdram_clk,
+    output wire sdram_cs_n,
+    inout wire [15:0] sdram_dq,
+    output wire sdram_ldqm,
+    output wire sdram_ras_n,
+    output wire sdram_udqm,
+    output wire sdram_we_n
 );
 
   wire dmem_req;
@@ -45,6 +58,7 @@ module rv32i_soc #(
   wire [31:0] dmem_addr;
   wire [31:0] dmem_wdata;
   wire [31:0] dmem_rdata;
+  wire dmem_ready;
 
   wire ram_req;
   wire ram_we;
@@ -81,6 +95,15 @@ module rv32i_soc #(
   wire [31:0] spi_addr;
   wire [31:0] spi_wdata;
   wire [31:0] spi_rdata;
+
+  wire sdram_req;
+  wire sdram_we;
+  wire [3:0] sdram_be;
+  wire [31:0] sdram_bus_addr;
+  wire [31:0] sdram_wdata;
+  wire [31:0] sdram_rdata;
+  wire sdram_ready;
+  wire [1:0] sdram_dqm;
 
   wire [31:0] imem_addr;
   wire [31:0] imem_rdata;
@@ -183,6 +206,32 @@ module rv32i_soc #(
       .spi_cs_n(spi_cs_n)
   );
 
+  assign sdram_ldqm = sdram_dqm[0];
+  assign sdram_udqm = sdram_dqm[1];
+
+  sdram_simple_ctrl u_sdram_simple_ctrl (
+      .clk(clk),
+      .rst_n(rst_n),
+      .req(sdram_req),
+      .we(sdram_we),
+      .be(sdram_be),
+      .addr(sdram_bus_addr),
+      .wdata(sdram_wdata),
+      .rdata(sdram_rdata),
+      .ready(sdram_ready),
+      .init_done(),
+      .sdram_clk(sdram_clk),
+      .sdram_addr(sdram_addr),
+      .sdram_ba(sdram_ba),
+      .sdram_cs_n(sdram_cs_n),
+      .sdram_cke(sdram_cke),
+      .sdram_ras_n(sdram_ras_n),
+      .sdram_cas_n(sdram_cas_n),
+      .sdram_we_n(sdram_we_n),
+      .sdram_dqm(sdram_dqm),
+      .sdram_dq(sdram_dq)
+  );
+
   simple_rom #(
       .ROM_FILE(ROM_FILE)
   ) u_rom (
@@ -205,6 +254,7 @@ module rv32i_soc #(
       .addr(dmem_addr),
       .wdata(dmem_wdata),
       .rdata(dmem_rdata),
+      .ready(dmem_ready),
 
       .rom_req(rom_req),
       .rom_addr(rom_addr),
@@ -236,7 +286,15 @@ module rv32i_soc #(
       .spi_be(spi_be),
       .spi_addr(spi_addr),
       .spi_wdata(spi_wdata),
-      .spi_rdata(spi_rdata)
+      .spi_rdata(spi_rdata),
+
+      .sdram_req(sdram_req),
+      .sdram_we(sdram_we),
+      .sdram_be(sdram_be),
+      .sdram_addr(sdram_bus_addr),
+      .sdram_wdata(sdram_wdata),
+      .sdram_rdata(sdram_rdata),
+      .sdram_ready(sdram_ready)
   );
 
   rv32i_core #(
@@ -253,7 +311,8 @@ module rv32i_soc #(
       .dmem_be(dmem_be),
       .dmem_addr(dmem_addr),
       .dmem_wdata(dmem_wdata),
-      .dmem_rdata(dmem_rdata)
+      .dmem_rdata(dmem_rdata),
+      .dmem_ready(dmem_ready)
   );
 
 endmodule

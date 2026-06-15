@@ -22,6 +22,17 @@ module rv32i_soc_ram_exec_vlg_tst;
   wire spi_sclk;
   wire spi_mosi;
   wire spi_cs_n;
+  wire [12:0] sdram_addr;
+  wire [1:0] sdram_ba;
+  wire sdram_cas_n;
+  wire sdram_cke;
+  wire sdram_clk;
+  wire sdram_cs_n;
+  wire [15:0] sdram_dq;
+  wire sdram_ldqm;
+  wire sdram_ras_n;
+  wire sdram_udqm;
+  wire sdram_we_n;
 
   localparam OPCODE_LUI = 7'b0110111;
   localparam OPCODE_OP_IMM = 7'b0010011;
@@ -53,7 +64,31 @@ module rv32i_soc_ram_exec_vlg_tst;
       .spi_miso(1'b1),
       .spi_sclk(spi_sclk),
       .spi_mosi(spi_mosi),
-      .spi_cs_n(spi_cs_n)
+      .spi_cs_n(spi_cs_n),
+      .sdram_addr(sdram_addr),
+      .sdram_ba(sdram_ba),
+      .sdram_cas_n(sdram_cas_n),
+      .sdram_cke(sdram_cke),
+      .sdram_clk(sdram_clk),
+      .sdram_cs_n(sdram_cs_n),
+      .sdram_dq(sdram_dq),
+      .sdram_ldqm(sdram_ldqm),
+      .sdram_ras_n(sdram_ras_n),
+      .sdram_udqm(sdram_udqm),
+      .sdram_we_n(sdram_we_n)
+  );
+
+  sdram_model u_sdram_model (
+      .clk(sdram_clk),
+      .sdram_addr(sdram_addr),
+      .sdram_ba(sdram_ba),
+      .sdram_cs_n(sdram_cs_n),
+      .sdram_cke(sdram_cke),
+      .sdram_ras_n(sdram_ras_n),
+      .sdram_cas_n(sdram_cas_n),
+      .sdram_we_n(sdram_we_n),
+      .sdram_dqm({sdram_udqm, sdram_ldqm}),
+      .sdram_dq(sdram_dq)
   );
 
   initial begin

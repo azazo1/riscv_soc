@@ -16,7 +16,8 @@ module rv32i_core #(
     output wire [ 3:0] dmem_be,     // 数据存储器字节使能
     output wire [31:0] dmem_addr,   // 数据存储器地址
     output wire [31:0] dmem_wdata,  // 数据存储器写数据
-    input  wire [31:0] dmem_rdata   // 数据存储器读数据
+    input  wire [31:0] dmem_rdata,  // 数据存储器读数据
+    input  wire        dmem_ready   // 数据存储器访问完成
 );
 
   wire rd_we;
@@ -44,6 +45,8 @@ module rv32i_core #(
   wire is_auipc;
   wire mem_read;
   wire mem_write;
+  wire dmem_wait;
+  wire core_hold;
 
   // 写回寄存器数据来源
   localparam WB_ALU = 2'd0;
@@ -73,6 +76,8 @@ module rv32i_core #(
   assign dmem_req  = mem_read || mem_write;
   assign dmem_we   = mem_write;
   assign dmem_addr = alu_result;
+  assign dmem_wait = dmem_req && !dmem_ready;
+  assign core_hold = dmem_wait;
 
   next_pc_unit u_next_pc_unit (
       .pc(imem_addr),
@@ -91,6 +96,7 @@ module rv32i_core #(
   ) u_pc_reg (
       .next_pc(next_pc),
       .pc(imem_addr),
+      .hold(core_hold),
       .rst_n(rst_n),
       .clk(clk)
   );
@@ -135,7 +141,7 @@ module rv32i_core #(
       .rs2_addr(rs2_addr),
       .rs1_data(rs1_data),
       .rs2_data(rs2_data),
-      .rd_we(rd_we),
+      .rd_we(rd_we && !core_hold),
       .rd_addr(rd_addr),
       .rd_data(rd_data)
   );

@@ -13,6 +13,7 @@ module rv32i_soc_mmio_vlg_tst;
   wire [31:0] dmem_addr;
   wire [31:0] dmem_wdata;
   wire [31:0] dmem_rdata;
+  wire dmem_ready;
 
   wire rom_req;
   wire [31:0] rom_addr;
@@ -55,6 +56,14 @@ module rv32i_soc_mmio_vlg_tst;
   wire spi_mosi;
   wire spi_cs_n;
 
+  wire sdram_req;
+  wire sdram_we;
+  wire [3:0] sdram_be;
+  wire [31:0] sdram_addr;
+  wire [31:0] sdram_wdata;
+  wire [31:0] sdram_rdata;
+  wire sdram_ready;
+
   reg [9:0] sw;
   reg [3:0] key;
   wire [9:0] ledr;
@@ -87,7 +96,8 @@ module rv32i_soc_mmio_vlg_tst;
       .dmem_be(dmem_be),
       .dmem_addr(dmem_addr),
       .dmem_wdata(dmem_wdata),
-      .dmem_rdata(dmem_rdata)
+      .dmem_rdata(dmem_rdata),
+      .dmem_ready(dmem_ready)
   );
 
   simple_bus u_bus (
@@ -98,6 +108,7 @@ module rv32i_soc_mmio_vlg_tst;
       .addr(dmem_addr),
       .wdata(dmem_wdata),
       .rdata(dmem_rdata),
+      .ready(dmem_ready),
       .rom_req(rom_req),
       .rom_addr(rom_addr),
       .rom_rdata(rom_rdata),
@@ -124,8 +135,18 @@ module rv32i_soc_mmio_vlg_tst;
       .spi_be(spi_be),
       .spi_addr(spi_addr),
       .spi_wdata(spi_wdata),
-      .spi_rdata(spi_rdata)
+      .spi_rdata(spi_rdata),
+      .sdram_req(sdram_req),
+      .sdram_we(sdram_we),
+      .sdram_be(sdram_be),
+      .sdram_addr(sdram_addr),
+      .sdram_wdata(sdram_wdata),
+      .sdram_rdata(sdram_rdata),
+      .sdram_ready(sdram_ready)
   );
+
+  assign sdram_rdata = 32'b0;
+  assign sdram_ready = 1'b1;
 
   assign rom_rdata = 32'h0000_0013;
 

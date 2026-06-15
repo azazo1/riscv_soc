@@ -7,6 +7,10 @@ typedef unsigned int u32;
 
 #define RV32I_REG32(addr) (*(volatile u32 *)(addr))
 
+#define RV32I_SDRAM_BASE  0x02000000u
+#define RV32I_SDRAM_SIZE  0x04000000u
+#define RV32I_SDRAM_END   0x06000000u
+
 /* MMIO register map. */
 #define RV32I_LEDR      RV32I_REG32(0x01000000u)
 #define RV32I_SW        RV32I_REG32(0x01000004u)
