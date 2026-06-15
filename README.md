@@ -2,8 +2,6 @@
 
 在 DE1-Soc FPGA 开发板上实现一个简单的 RV32I 指令集 CPU, 并且实现相关外设的控制, 比如 SDRAM, 按钮, 数码管等等.
 
-VGA 图形能力待支持.
-
 ## 板载
 
 ### GPIO
@@ -58,3 +56,13 @@ GPIO0 同理.
 - 用途: 编译裸机 C 固件, 目前 `just firmware-c-demo` 使用 `zig cc` 生成 RV32I 目标文件.
 - 安装后验证: `zig version`.
 - 目标参数: 当前使用 `-target riscv32-freestanding -mcpu=baseline_rv32 -mabi=ilp32`, 对应 RV32 裸机环境, 不依赖宿主系统库.
+
+## 项目结构
+
+- `src/core/`: RV32I CPU 核心, 包含取指, 译码, 寄存器堆, ALU, 分支判断, load/store 处理等模块.
+- `src/soc/`: SoC 外设和总线, 包含 ROM/RAM, GPIO, UART, SPI, SDRAM, VGA, 以及 `rv32i_soc` 集成层.
+- `firmware/`: 固定放在片上 ROM 中运行的小程序, 例如 bootloader, UART demo, C demo 和板级 demo.
+- `apps/`: 由 bootloader 加载到 RAM/SDRAM 中运行的应用程序, 例如板级观察 demo, SDRAM 测试和 VGA 测试.
+- `docs/`: 项目文档, `docs/dev/core/` 记录 CPU 设计, `docs/dev/soc/` 记录外设和 SoC 设计, `docs/dev/quartus/` 记录上板流程.
+- `riscv_soc.qpf`, `riscv_soc.qsf`, `riscv_soc.sdc`: Quartus 工程, 管脚约束和时序约束.
+- `justfile`: 常用命令入口, 用于运行仿真测试, 构建 ROM 固件, 构建可被 bootloader 加载的应用.
