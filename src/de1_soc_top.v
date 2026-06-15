@@ -1,7 +1,9 @@
 `timescale 1ns / 1ps
 
 // 适用于 de1_soc 的顶层模块, 用于在 quartus 中直接编译.
-module de1_soc_top (
+module de1_soc_top #(
+    parameter ROM_FILE = "firmware/uart_demo/uart_demo.hex"
+) (
     input wire clk,
 
     input  wire [9:0] sw,
@@ -38,7 +40,9 @@ module de1_soc_top (
   // GPIO_1[0] 暂时作为 UART TX 使用, 接到 USB-TTL 的 RX.
   assign gpio1[0] = uart_tx_pin;
 
-  rv32i_soc u_soc (
+  rv32i_soc #(
+      .ROM_FILE(ROM_FILE)
+  ) u_soc (
       .clk(clk),
       .rst_n(~sw[9]),  // 使用 SW9 作为板级复位, SW9=1 时内部 rst_n=0.
       .sw(sw),

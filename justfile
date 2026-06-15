@@ -18,7 +18,7 @@ build-verilog top:
 run-verilog top:
     @just run-verilog-with {{ top }} {{ verilog_sources }}
 
-firmware: firmware-board-demo
+firmware: firmware-board-demo firmware-uart-demo
 
 firmware-board-demo:
     @mkdir -p {{ build_dir }}/firmware/board_demo
@@ -34,7 +34,14 @@ firmware-board-demo:
     @# xxd -e -g 4 -c 4 把 little-endian 字节按 32-bit 指令 word 输出给 $readmemh.
     @xxd -e -g 4 -c 4 {{ build_dir }}/firmware/board_demo/board_demo.bin | awk '{ print $2 }' > firmware/board_demo/board_demo.hex
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-rv32i-soc test-rv32i-soc-mmio test-de1-soc-top
+firmware-uart-demo:
+    @mkdir -p {{ build_dir }}/firmware/uart_demo
+    riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/firmware/uart_demo/uart_demo.o firmware/uart_demo/uart_demo.S
+    riscv64-elf-ld -m elf32lriscv -Ttext=0x00000000 -e _start -o {{ build_dir }}/firmware/uart_demo/uart_demo.elf {{ build_dir }}/firmware/uart_demo/uart_demo.o
+    riscv64-elf-objcopy -O binary -j .text {{ build_dir }}/firmware/uart_demo/uart_demo.elf {{ build_dir }}/firmware/uart_demo/uart_demo.bin
+    @xxd -e -g 4 -c 4 {{ build_dir }}/firmware/uart_demo/uart_demo.bin | awk '{ print $2 }' > firmware/uart_demo/uart_demo.hex
+
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-uart-rom test-de1-soc-top
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -86,6 +93,9 @@ test-rv32i-soc: firmware-board-demo
 
 test-rv32i-soc-mmio:
     @just run-verilog rv32i_soc_mmio_vlg_tst
+
+test-rv32i-soc-uart-rom: firmware-uart-demo
+    @just run-verilog rv32i_soc_uart_rom_vlg_tst
 
 test-de1-soc-top: firmware-board-demo
     @just run-verilog de1_soc_top_vlg_tst

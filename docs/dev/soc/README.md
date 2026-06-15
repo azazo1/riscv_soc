@@ -49,6 +49,10 @@ rv32i_core
 
 固件源文件是 `firmware/board_demo/board_demo.S`. 运行 `just firmware-board-demo` 会重新生成 `firmware/board_demo/board_demo.hex`.
 
+UART 实机测试固件是 `firmware/uart_demo/uart_demo.S`. 运行 `just firmware-uart-demo` 会生成 `firmware/uart_demo/uart_demo.hex`.
+
+`de1_soc_top` 默认使用 UART 实机测试固件. `rv32i_soc` 默认仍使用 `board_demo.hex`, 方便本地仿真保持快速自检.
+
 `firmware/test/simple_rom.hex` 只给 `simple_rom_vlg_tst` 使用, 不作为上板程序.
 
 当前上板自检固件的行为:

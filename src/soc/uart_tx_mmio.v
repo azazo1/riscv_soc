@@ -15,9 +15,9 @@ module uart_tx_mmio (
     input wire tx_ready,
     input wire tx_busy,
 
-    output reg [31:0] rdata,
-    output reg tx_valid,
-    output reg [7:0] tx_data
+    output reg [31:0] rdata,   // 读 MMIO 返回的 32-bit 数据, 内容看上面的注释地址映射
+    output reg tx_valid,  // 写 TXDATA 后产生一个周期的发送脉冲
+    output reg [7:0] tx_data  // 待发送的字节, tx_valid 有效时锁存
 );
 
   localparam ADDR_TXDATA = 6'h00;  // 0x0100_0100
@@ -41,12 +41,12 @@ module uart_tx_mmio (
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       tx_valid <= 1'b0;
-      tx_data <= 8'b0;
+      tx_data  <= 8'b0;
     end else begin
       tx_valid <= 1'b0;
 
       if (req && we && addr_hit && addr_offset == ADDR_TXDATA && be[0] && tx_ready) begin
-        tx_data <= wdata[7:0];
+        tx_data  <= wdata[7:0];
         tx_valid <= 1'b1;
       end
     end

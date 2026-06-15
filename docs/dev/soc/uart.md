@@ -112,3 +112,21 @@ void uart_putc(unsigned char ch) {
 这意味着 busy 时写入不会覆盖正在发送的字节, 但这次写入也不会排队等待. 如果软件没有轮询状态就连续写多个字节, 后面的字节可能会被忽略.
 
 后续如果希望软件可以连续写入, 需要在 `uart_tx_mmio` 和 `uart_tx` 之间增加 1 字节缓冲或 FIFO, 并在 `UART_STATUS` 中增加 buffer full 之类的状态位.
+
+## UART 上板 ROM
+
+`firmware/uart_demo/uart_demo.S` 是当前用于 UART 实机测试的 ROM 程序.
+
+运行 `just firmware-uart-demo` 会生成 `firmware/uart_demo/uart_demo.hex`.
+
+`de1_soc_top` 默认使用这个 hex, 适合直接用 Quartus 上板测试 UART TX.
+
+程序行为:
+
+- reset 后发送 `R\n`.
+- 每约 1 秒发送 `.\n`.
+- KEY[3:0] 状态变化时发送 `Kx\n`, 其中 `x` 是 KEY[3:0] 的十六进制值.
+
+DE1-SoC 的 KEY 通常是低有效. 未按下时读到 `0xf`, KEY0 按下时常见读数是 `0xe`.
+
+串口终端参数保持 115200 baud, 8 data bits, no parity, 1 stop bit. USB-TTL 的 RX 接 `GPIO_1[0]`, GND 要共地.

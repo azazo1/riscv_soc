@@ -21,7 +21,9 @@ module de1_soc_top_vlg_tst;
   assign gpio0 = gpio0_drive_en ? gpio0_drive : 36'bz;
   assign gpio1 = gpio1_drive_en ? gpio1_drive : 36'bz;
 
-  de1_soc_top dut (
+  de1_soc_top #(
+      .ROM_FILE("firmware/board_demo/board_demo.hex")
+  ) dut (
       .clk(clk),
       .sw(sw),
       .key(key),

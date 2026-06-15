@@ -3,6 +3,7 @@
 // 简单 soc 实现
 module rv32i_soc #(
     parameter RESET_PC = 32'h0000_0000,
+    parameter ROM_FILE = "firmware/board_demo/board_demo.hex",
     // UART_CLKS_PER_BIT = clk_hz / baud, example: 50 MHz / 115200 ~= 434.
     parameter UART_CLKS_PER_BIT = 434
 ) (
@@ -133,7 +134,9 @@ module rv32i_soc #(
       .tx_pin(uart_tx_pin)
   );
 
-  simple_rom u_rom (
+  simple_rom #(
+      .ROM_FILE(ROM_FILE)
+  ) u_rom (
       .addr (imem_addr),
       .rdata(imem_rdata)
   );
