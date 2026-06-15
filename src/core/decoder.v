@@ -94,25 +94,29 @@ module decoder (
   assign jump = is_jal || is_jalr;
 
   always @(*) begin
-    case (funct3)
-      3'b000: begin
-        if (is_op && funct7 == 7'b0100000)
-          alu_op = ALU_SUB;  // 加上 is_op 的判断防止是立即数导致的, 立即数操作没有 SUBI.
-        else alu_op = ALU_ADD;
-      end
-      3'b001: alu_op = ALU_SLL;
-      3'b010: alu_op = ALU_SLT;
-      3'b011: alu_op = ALU_SLTU;
-      3'b100: alu_op = ALU_XOR;
-      3'b101: begin
-        if (funct7 == 7'b0100000) alu_op = ALU_SRA;
-        else alu_op = ALU_SRL;
-      end
-      3'b110: alu_op = ALU_OR;
-      3'b111: alu_op = ALU_AND;
-      default:
-      alu_op = ALU_ADD;  // todo: 现在暂时不添加无效指令的分辨, 后续再添加.
-    endcase
+    if (is_op || is_op_imm) begin // 只有 op / op_imm 类的指令才根据 funct3 计算操作类型.
+      case (funct3)
+        3'b000: begin
+          if (is_op && funct7 == 7'b0100000)
+            alu_op = ALU_SUB;  // 加上 is_op 的判断防止是立即数导致的, 立即数操作没有 SUBI.
+          else alu_op = ALU_ADD;
+        end
+        3'b001: alu_op = ALU_SLL;
+        3'b010: alu_op = ALU_SLT;
+        3'b011: alu_op = ALU_SLTU;
+        3'b100: alu_op = ALU_XOR;
+        3'b101: begin
+          if (funct7 == 7'b0100000) alu_op = ALU_SRA;
+          else alu_op = ALU_SRL;
+        end
+        3'b110: alu_op = ALU_OR;
+        3'b111: alu_op = ALU_AND;
+        default:
+        alu_op = ALU_ADD;  // todo: 现在暂时不添加无效指令的分辨, 后续再添加.
+      endcase
+    end else begin
+      alu_op = ALU_ADD;
+    end
   end
 
   always @(*) begin
