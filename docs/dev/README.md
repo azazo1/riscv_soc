@@ -4,10 +4,11 @@
 
 ## 当前阅读顺序
 
-1. `regs.md`: 先理解 RV32I 的 32 个通用寄存器, 特别是 `x0` 恒为 0, 以及 `pc` 不属于通用寄存器堆.
-2. `arch.md`: 再看第一版 CPU 的数据通路, 控制信号和模块边界.
-3. `instr_format.md`: 看 R/I/S/B/U/J 六种指令格式, 先熟悉字段位置.
-4. `imm_gen.md`: 写立即数生成器之前, 先确认 I/S/B/U/J 五种 immediate 的位拼接和符号扩展.
+1. `core/regs.md`: 先理解 RV32I 的 32 个通用寄存器, 特别是 `x0` 恒为 0, 以及 `pc` 不属于通用寄存器堆.
+2. `core/arch.md`: 再看第一版 CPU 的数据通路, 控制信号和模块边界.
+3. `core/instr_format.md`: 看 R/I/S/B/U/J 六种指令格式, 先熟悉字段位置.
+4. `core/imm_gen.md`: 写立即数生成器之前, 先确认 I/S/B/U/J 五种 immediate 的位拼接和符号扩展.
+5. `soc/README.md`: CPU 顶层能运行后, 看最小 SoC 的 ROM, RAM 和后续 SDRAM 接入规划.
 
 ## 当前开发节奏
 
@@ -22,6 +23,7 @@
 5. `branch_unit`: 分支判断, 独立验证 BEQ, BNE, BLT, BGE, BLTU, BGEU.
 6. `load_store_unit`: load/store 字节使能, 对齐和符号扩展.
 7. `rv32i_core`: 连接 PC, regfile, ALU, decoder, memory 接口.
+8. `rv32i_soc`: 连接 CPU, ROM, RAM, 从模块级测试推进到最小系统测试.
 
 ## 代码和测试约定
 
