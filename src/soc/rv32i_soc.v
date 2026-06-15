@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 // 简单 soc 实现
 module rv32i_soc #(
     parameter RESET_PC = 32'h0000_0000
