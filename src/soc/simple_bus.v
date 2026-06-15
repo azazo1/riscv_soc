@@ -2,7 +2,7 @@
 
 // 简单的总线, 用于 RAM 和 MMIO
 module simple_bus (
-    input wire clk,
+    input wire clk, // clk 暂时没有, 但是后面接入 SDRAM, 外设访问, 总线仲裁的时候有用.
 
     // core 输入的读写请求
     input wire req,
@@ -35,10 +35,10 @@ module simple_bus (
   assign ram_wdata = wdata;
 
   always @(*) begin
-    if (ram_hit) begin
+    if (ram_req) begin  // 不能只看 ram_hit, 因为 req 为 0 的时候总线应该为空闲.
       rdata = ram_rdata;
-    end else begin
-      rdata = 32'b0;  // todo MMIO
+    end else begin  // todo MMIO
+      rdata = 32'b0;
     end
   end
 

@@ -107,7 +107,7 @@ module simple_bus_vlg_tst;
     wdata = 32'h1234_5678;
     ram_rdata = 32'h8765_4321;
     #1;
-    if (ram_req !== 1'b0) begin
+    if (ram_req !== 1'b0 || rdata !== 32'b0) begin
       $display("idle request should not access ram");
       $fatal;
     end

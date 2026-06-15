@@ -15,23 +15,47 @@ module rv32i_soc #(
   wire [31:0] dmem_wdata;
   wire [31:0] dmem_rdata;
 
+  wire ram_req;
+  wire ram_we;
+  wire [3:0] ram_be;
+  wire [31:0] ram_addr;
+  wire [31:0] ram_wdata;
+  wire [31:0] ram_rdata;
+
   wire [31:0] imem_addr;
   wire [31:0] imem_rdata;
 
 
   simple_ram u_ram (
       .clk(clk),
-      .req(dmem_req),
-      .we(dmem_we),
-      .be(dmem_be),
-      .addr(dmem_addr),
-      .wdata(dmem_wdata),
-      .rdata(dmem_rdata)
+      .req(ram_req),
+      .we(ram_we),
+      .be(ram_be),
+      .addr(ram_addr),
+      .wdata(ram_wdata),
+      .rdata(ram_rdata)
   );
 
   simple_rom u_rom (
       .addr (imem_addr),
       .rdata(imem_rdata)
+  );
+
+  simple_bus u_bus (
+      .clk(clk),
+      .req(dmem_req),
+      .we(dmem_we),
+      .be(dmem_be),
+      .addr(dmem_addr),
+      .wdata(dmem_wdata),
+      .rdata(dmem_rdata),
+
+      .ram_req(ram_req),
+      .ram_we(ram_we),
+      .ram_be(ram_be),
+      .ram_addr(ram_addr),
+      .ram_wdata(ram_wdata),
+      .ram_rdata(ram_rdata)
   );
 
   rv32i_core #(
