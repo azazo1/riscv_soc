@@ -26,7 +26,7 @@ module rv32i_core #(
   wire [4:0] rs2_addr;
   wire [2:0] funct3;
   wire [6:0] funct7;
-  wire [3:0] alu_op;
+  wire [4:0] alu_op;
   wire [31:0] next_pc;
   wire [31:0] rs1_data;
   wire [31:0] rs2_data;

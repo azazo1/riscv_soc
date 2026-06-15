@@ -25,20 +25,28 @@ module decoder_vlg_tst;
   wire mem_write;
   wire branch;
   wire jump;
-  wire [3:0] alu_op;
+  wire [4:0] alu_op;
   wire [2:0] imm_sel;
   wire [1:0] wb_sel;
 
-  localparam ALU_ADD  = 4'd0;
-  localparam ALU_SUB  = 4'd1;
-  localparam ALU_SLL  = 4'd2;
-  localparam ALU_SLT  = 4'd3;
-  localparam ALU_SLTU = 4'd4;
-  localparam ALU_XOR  = 4'd5;
-  localparam ALU_SRL  = 4'd6;
-  localparam ALU_SRA  = 4'd7;
-  localparam ALU_OR   = 4'd8;
-  localparam ALU_AND  = 4'd9;
+  localparam ALU_ADD = 5'd0;
+  localparam ALU_SUB = 5'd1;
+  localparam ALU_SLL = 5'd2;
+  localparam ALU_SLT = 5'd3;
+  localparam ALU_SLTU = 5'd4;
+  localparam ALU_XOR = 5'd5;
+  localparam ALU_SRL = 5'd6;
+  localparam ALU_SRA = 5'd7;
+  localparam ALU_OR = 5'd8;
+  localparam ALU_AND = 5'd9;
+  localparam ALU_MUL = 5'd10;
+  localparam ALU_MULH = 5'd11;
+  localparam ALU_MULHSU = 5'd12;
+  localparam ALU_MULHU = 5'd13;
+  localparam ALU_DIV = 5'd14;
+  localparam ALU_DIVU = 5'd15;
+  localparam ALU_REM = 5'd16;
+  localparam ALU_REMU = 5'd17;
 
   localparam IMM_I = 3'd0;
   localparam IMM_S = 3'd1;
@@ -51,7 +59,7 @@ module decoder_vlg_tst;
   localparam WB_PC4 = 2'd2;
   localparam WB_IMM = 2'd3;
 
-  decoder dut (
+	  decoder dut (
       .instr(instr),
       .opcode(opcode),
       .rd(rd),
@@ -77,7 +85,19 @@ module decoder_vlg_tst;
       .alu_op(alu_op),
       .imm_sel(imm_sel),
       .wb_sel(wb_sel)
-  );
+	  );
+
+  task expect_alu_op;
+    input [4:0] expected;
+    input [31:0] check_id;
+    begin
+      #1;
+      if (alu_op != expected) begin
+        $display("check %0d alu_op failed: expected %d, got %d", check_id, expected, alu_op);
+        $fatal;
+      end
+    end
+  endtask
 
   initial begin
     // R-type: sub x5, x6, x7
@@ -107,10 +127,35 @@ module decoder_vlg_tst;
     // R-type: add x5, x6, x7
     instr = {7'b0000000, 5'd7, 5'd6, 3'b000, 5'd5, 7'b0110011};
     #1;
-    if (alu_op != ALU_ADD) begin
-      $display("R-type ADD alu_op failed: got %d", alu_op);
-      $fatal;
-    end
+	    if (alu_op != ALU_ADD) begin
+	      $display("R-type ADD alu_op failed: got %d", alu_op);
+	      $fatal;
+	    end
+
+    // R-type RV32M: funct7=0000001.
+    instr = {7'b0000001, 5'd7, 5'd6, 3'b000, 5'd5, 7'b0110011}; // mul
+    expect_alu_op(ALU_MUL, 32'd101);
+
+    instr = {7'b0000001, 5'd7, 5'd6, 3'b001, 5'd5, 7'b0110011}; // mulh
+    expect_alu_op(ALU_MULH, 32'd102);
+
+    instr = {7'b0000001, 5'd7, 5'd6, 3'b010, 5'd5, 7'b0110011}; // mulhsu
+    expect_alu_op(ALU_MULHSU, 32'd103);
+
+    instr = {7'b0000001, 5'd7, 5'd6, 3'b011, 5'd5, 7'b0110011}; // mulhu
+    expect_alu_op(ALU_MULHU, 32'd104);
+
+    instr = {7'b0000001, 5'd7, 5'd6, 3'b100, 5'd5, 7'b0110011}; // div
+    expect_alu_op(ALU_DIV, 32'd105);
+
+    instr = {7'b0000001, 5'd7, 5'd6, 3'b101, 5'd5, 7'b0110011}; // divu
+    expect_alu_op(ALU_DIVU, 32'd106);
+
+    instr = {7'b0000001, 5'd7, 5'd6, 3'b110, 5'd5, 7'b0110011}; // rem
+    expect_alu_op(ALU_REM, 32'd107);
+
+    instr = {7'b0000001, 5'd7, 5'd6, 3'b111, 5'd5, 7'b0110011}; // remu
+    expect_alu_op(ALU_REMU, 32'd108);
 
     // I-type OP-IMM: addi x1, x2, 0x123
     instr = {12'h123, 5'd2, 3'b000, 5'd1, 7'b0010011};

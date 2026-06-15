@@ -4,7 +4,7 @@
 
 ## 第一版定位
 
-- ISA: RV32I base integer, 暂不实现 M, C, A, F, D 扩展.
+- ISA: RV32I base integer + M 乘除法扩展, 暂不实现 C, A, F, D 扩展.
 - 数据宽度: 32 bit.
 - 寄存器: x0 到 x31, 其中 x0 永远为 0.
 - 指令长度: 第一版只处理 32 bit 指令, PC 默认按 4 递增.
@@ -101,7 +101,7 @@ flowchart LR
 
 | 来源 | 目标 | 信号 | 建议宽度 | 作用 |
 | --- | --- | --- | --- | --- |
-| decoder | ALU | alu_op | 4 | 选择 ADD, SUB, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND |
+| decoder | ALU | alu_op | 5 | 选择 ADD, SUB, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND, MUL, DIV, REM |
 | decoder | ALU lhs mux | alu_lhs_sel | 1 or 2 | 选择 rs1 或 pc |
 | decoder | ALU rhs mux | alu_rhs_sel | 1 or 2 | 选择 rs2 或 immediate |
 | decoder | regfile | rd_we | 1 | 是否写回 rd |
@@ -128,7 +128,7 @@ flowchart LR
 - 输入 alu_op, lhs, rhs.
 - 输出 result.
 - 纯组合逻辑, 不需要 clk.
-- 覆盖 RV32I 整数运算和分支比较需要的基础运算.
+- 覆盖 RV32I 整数运算, RV32M 乘除法和分支比较需要的基础运算.
 
 ### imm_gen
 

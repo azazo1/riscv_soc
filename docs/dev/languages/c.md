@@ -80,7 +80,7 @@ just firmware-init-bin
 `zig cc` 用来把 C 编译成 RISC-V 目标文件:
 
 - `-target riscv32-freestanding`: 目标是 32 位 RISC-V 裸机环境, 没有操作系统.
-- `-mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf`: 从 baseline_rv32 关闭当前 CPU 未实现的扩展, 最终只保留 RV32I.
+- `-mcpu=baseline_rv32-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf`: 从 baseline_rv32 关闭当前 CPU 未实现的扩展, 最终保留 RV32IM.
 - `-mabi=ilp32`: 使用 RV32 常见 ABI, `int`, `long`, pointer 都是 32 bit.
 - `-ffreestanding`: 告诉编译器这是裸机程序.
 - `-fno-builtin`: 不把普通函数名替换成编译器内建函数.
@@ -102,7 +102,7 @@ just firmware-init-bin
 - 直接放进 ROM 的 `firmware-c-demo` 暂时不支持带初始值的全局变量, 因为还没有从 ROM 复制 `.data` 到 RAM 的启动逻辑.
 - 通过 SD 启动的 `init.bin` 支持 initialized `.data`.
 - 暂时没有 `malloc`, `printf`, 中断和系统调用.
-- C 编译后必须检查不能出现 RVC, M 扩展, CSR 等当前 CPU 不支持的指令.
+- C 编译后必须检查不能出现 RVC, CSR, A/F/D 等当前 CPU 不支持的指令.
 
 可以用下面命令检查:
 

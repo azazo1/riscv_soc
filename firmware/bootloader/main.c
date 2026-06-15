@@ -19,23 +19,6 @@ static u8 sectors_per_cluster;
 static u8 sectors_per_cluster_shift;
 static u8 sd_is_block_addr;
 
-// RV32I 没有 M 扩展, 编译器可能把乘法降级成这个函数.
-u32 __mulsi3(u32 a, u32 b)
-{
-    u32 out;
-
-    out = 0u;
-    while (b != 0u) {
-        if ((b & 1u) != 0u) {
-            out += a;
-        }
-        a <<= 1;
-        b >>= 1;
-    }
-
-    return out;
-}
-
 static u16 rd16(const u8 *p)
 {
     return (u16)p[0] | ((u16)p[1] << 8);
@@ -221,18 +204,6 @@ static void sd_read_sector(u32 lba, u8 *out)
     sd_deselect();
 }
 
-static u32 add_repeat(u32 value, u8 count)
-{
-    u32 out;
-    u8 i;
-
-    out = 0u;
-    for (i = 0u; i < count; i++) {
-        out += value;
-    }
-    return out;
-}
-
 static u8 calc_shift(u8 value)
 {
     u8 shift;
@@ -327,7 +298,7 @@ static void parse_fat32(void)
     }
 
     first_fat_sector = partition_lba + reserved;
-    first_data_sector = first_fat_sector + add_repeat(fat_size, num_fats);
+    first_data_sector = first_fat_sector + fat_size * num_fats;
 }
 
 static u8 is_init_bin_entry(const u8 *entry)
