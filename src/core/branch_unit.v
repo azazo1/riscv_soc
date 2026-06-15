@@ -3,8 +3,8 @@
 // 分支单元, 判断跳转是否生效.
 module branch_unit (
     input wire [2:0] funct3,
-    input wire [31:0] lhs,
-    input wire [31:0] rhs,
+    input wire [31:0] lhs, // 分支比较左操作数, 通常来自 rs1_data
+    input wire [31:0] rhs, // 分支比较右操作数, 通常来自 rs2_data
     output reg branch_taken // 分支单元的判断结果输出信号, 如果为 1, 那么分支条件满足, 可以跳转.
 );
   localparam BR_BEQ = 3'b000;
