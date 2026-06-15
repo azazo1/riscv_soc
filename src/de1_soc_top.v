@@ -17,6 +17,7 @@ module de1_soc_top #(
     output wire [6:0] hex5,
 
     inout wire [35:0] gpio0,
+    // 实机上, gpio1[0] 位于右侧 40 针脚中的最左上的针脚.
     inout wire [35:0] gpio1
 );
 
