@@ -222,6 +222,8 @@ DE1-SoC 的 GPIO 排针一般叫 40 pin, 但其中包含 VCC 和 GND. 当前 QSF
 
 UART TX 没有额外新增顶层 pin 名称, 而是在 `de1_soc_top` 中复用 `gpio1[0]`. 如果要外接 USB-TTL, TTL 模块的 RX 接 GPIO_1[0], GND 和 DE1-SoC 共地. 因为这个 bit 已经被 UART 占用, 板级 top 中 `gpio1[0]` 不再作为普通 GPIO 输出使用.
 
+当前没有直接使用板载 UART 口, 因为它属于 HPS 侧资源. 如果后续希望把 UART 作为稳定的板外调试口, 可能需要独立的 UART 转发芯片, 比如 USB-TTL 转换器, 这样 FPGA 侧的 `gpio1[0]` 就能直接输出串口波形.
+
 ## 开发步骤
 
 已经完成的阶段:
