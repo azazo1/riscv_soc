@@ -101,6 +101,10 @@ SD 启动固件是 `firmware/bootloader/main.c`. 运行 `just firmware-bootloade
 - 默认容量是 8192 words, 也就是 32 KiB.
 - reset 不清空 RAM, 避免综合出很大的复位清零逻辑, 也更容易推断为 M10K.
 
+后续查看 Quartus Fitter 报告时发现, 片上 RAM 可能没有被推断成 M10K block. 报告里 `Total RAM Blocks` 和 `M10K blocks` 为 0, 但寄存器数量达到二十多万级, 同时 LAB 需求超过两万. 这说明 `simple_dual_port_ram` 的 32 KiB 存储阵列被综合进了普通逻辑资源, 这才是当前面积超限的主要来源.
+
+处理方向不是继续扩大片上 RAM, 而是缩小低地址 boot RAM, 把普通 app 加载到 SDRAM 执行. 片上 RAM 只保留给 bootloader 的 `.bss`, sector buffer 和 stack. 如果后续仍需要片上 RAM, 应优先确认它是否真正占用 M10K, 或使用规格匹配的 RAM IP.
+
 ### `simple_bus`
 
 `simple_bus` 是当前的数据访问译码器.
