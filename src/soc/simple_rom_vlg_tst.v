@@ -28,7 +28,7 @@ module simple_rom_vlg_tst;
     expect_instr(32'h0000_0004, 32'h3024_8137, 32'd2);
     expect_instr(32'h0000_0008, 32'h9401_0113, 32'd3);
     expect_instr(32'h0000_000c, 32'h0020_a623, 32'd4);
-    expect_instr(32'h0000_0010, 32'h7802_11b7, 32'd5);
+    expect_instr(32'h0000_0010, 32'h0000_11b7, 32'd5);
     expect_instr(32'h0000_0014, 32'h2191_8193, 32'd6);
     expect_instr(32'h0000_0018, 32'h0030_a823, 32'd7);
     expect_instr(32'h0000_001c, 32'h0040_a203, 32'd8);

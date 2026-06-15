@@ -10,7 +10,7 @@
 - 指令从 `simple_rom` 读取, 暂时不走 data bus.
 - 数据读写从 core 发出, 先进入 `simple_bus`.
 - `simple_bus` 按地址高位选择 RAM 或 GPIO MMIO.
-- `gpio_mmio` 提供 LEDR, SW, KEY, HEX0..HEX7 的寄存器访问.
+- `gpio_mmio` 提供 LEDR, SW, KEY, HEX0..HEX5 的寄存器访问.
 - 暂时没有 UART, timer, interrupt, SDRAM.
 - 暂时没有 `ready`/`valid` 等多周期握手.
 
@@ -47,7 +47,7 @@ rv32i_core
 
 当前 ROM 已经放入一个上板 demo:
 
-- 初始化 HEX0 到 HEX7, 让数码管显示固定内容.
+- 初始化 HEX0 到 HEX5, 让数码管显示固定内容.
 - 循环读取 SW, 并把 `SW[9:0]` 镜像到 `LEDR[9:0]`.
 
 这样上板后只要拨动开关, 就能直接看到 LED 变化. 数码管则用于确认 ROM 取指和 MMIO 写入都已经跑通.
@@ -97,7 +97,7 @@ bus 只做大范围译码, 设备内部再判断精确寄存器窗口. 当前 GP
 | `0x0100_0004` | `SW` | R | `[9:0]` | 读取 10 个拨码开关 |
 | `0x0100_0008` | `KEY` | R | `[3:0]` | 读取 4 个按键 |
 | `0x0100_000c` | `HEX_LOW` | R/W | 4 bytes, 每 byte 低 7 bit | 控制 HEX0 到 HEX3 |
-| `0x0100_0010` | `HEX_HIGH` | R/W | 4 bytes, 每 byte 低 7 bit | 控制 HEX4 到 HEX7 |
+| `0x0100_0010` | `HEX_HIGH` | R/W | 低 2 bytes, 每 byte 低 7 bit | 控制 HEX4 到 HEX5 |
 
 HEX 寄存器按 byte 拆分. 例如 `HEX_LOW` 中:
 
@@ -127,7 +127,7 @@ HEX 寄存器按 byte 拆分. 例如 `HEX_LOW` 中:
 - `sw[9:0]`
 - `key[3:0]`
 - `ledr[9:0]`
-- `hex0` 到 `hex7`
+- `hex0` 到 `hex5`
 
 如果只想快速上板, 可以直接把 `rv32i_soc` 当 Quartus top, 然后在 QSF 中把这些端口映射到真实管脚. 但长期建议保留一个板级 top.
 
@@ -144,9 +144,7 @@ HEX 寄存器按 byte 拆分. 例如 `HEX_LOW` 中:
 
 需要注意的是, 如果使用现有 QSF, 端口名字必须和 top module 一致. 例如 QSF 中写的是 `CLOCK_50`, 但 Verilog top 端口叫 `clk`, 那么 QSF 也要约束到 `clk`, 或者把 wrapper 端口改名为 `CLOCK_50`.
 
-当前项目的 `riscv_soc.qsf` 约束到 `de1_soc_top` 的小写端口名. 参考 DE1-SoC SDRAM 工程只提供 HEX0 到 HEX5 的板载管脚, `Selfsale` 工程也只有 HEX0 到 HEX5. `Selfsale` 中的 `cs[3:0]` 是 virtual pin, 不能当作真实位选管脚参考. 因此 `hex6` 和 `hex7` 暂时作为 virtual pin. 如果后续接外部 8 位数码管, 需要把 `hex6` 和 `hex7` 改成实际 GPIO 管脚.
-
-这两个参考工程的数码管端口都是 `[6:0]`, 没有 `dp` 或 8 bit 段选. 当前 SoC 的 HEX MMIO 仍然按每个 digit 占 8 bit 排布, 但 bit 7 只是保留位, 不会连接到小数点.
+当前项目的 `riscv_soc.qsf` 约束到 `de1_soc_top` 的小写端口名. 板载 HEX 端口为 HEX0 到 HEX5, 每个端口都是 `[6:0]`, 没有 `dp` 或 8 bit 段选. 当前 SoC 的 HEX MMIO 仍然按每个 digit 占 8 bit 排布, 但 bit 7 只是保留位, 不会连接到小数点.
 
 ## 开发步骤
 

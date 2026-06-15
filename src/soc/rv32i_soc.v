@@ -16,9 +16,7 @@ module rv32i_soc #(
     output wire [6:0] hex2,
     output wire [6:0] hex3,
     output wire [6:0] hex4,
-    output wire [6:0] hex5,
-    output wire [6:0] hex6,
-    output wire [6:0] hex7
+    output wire [6:0] hex5
 );
 
   wire dmem_req;
@@ -75,9 +73,7 @@ module rv32i_soc #(
       .hex2(hex2),
       .hex3(hex3),
       .hex4(hex4),
-      .hex5(hex5),
-      .hex6(hex6),
-      .hex7(hex7)
+      .hex5(hex5)
   );
 
   simple_rom u_rom (

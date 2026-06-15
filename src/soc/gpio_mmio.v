@@ -23,9 +23,7 @@ module gpio_mmio (
     output reg [ 6:0] hex2,
     output reg [ 6:0] hex3,
     output reg [ 6:0] hex4,
-    output reg [ 6:0] hex5,
-    output reg [ 6:0] hex6,
-    output reg [ 6:0] hex7
+    output reg [ 6:0] hex5
 );
 
   // 第一版, 针对 DE1-Soc 做的 GPIO 地址映射:
@@ -33,7 +31,7 @@ module gpio_mmio (
   // 0x0100_0004 SW        R,   低 10 bit 有效
   // 0x0100_0008 KEY       R,   低 4 bit 有效
   // 0x0100_000c HEX_LOW   R/W, HEX0..HEX3, 每个 HEX 占 8 bit, 只用低 7 bit (似乎板载只支持 7 段)
-  // 0x0100_0010 HEX_HIGH  R/W, HEX4..HEX7, 每个 HEX 占 8 bit, 只用低 7 bit
+  // 0x0100_0010 HEX_HIGH  R/W, HEX4..HEX5, 低 2 bytes 有效, 每个 HEX 只用低 7 bit
 
   // MMIO 字地址 (addr[7:2] 对应 32-bit word 偏移)
   localparam ADDR_LEDR = 6'b000;  // 0x0100_0000
@@ -53,7 +51,7 @@ module gpio_mmio (
         ADDR_SW: rdata = {22'b0, sw[9:0]};
         ADDR_KEY: rdata = {28'b0, key};
         ADDR_HEX_LOW: rdata = {1'b0, hex3, 1'b0, hex2, 1'b0, hex1, 1'b0, hex0};
-        ADDR_HEX_HIGH: rdata = {1'b0, hex7, 1'b0, hex6, 1'b0, hex5, 1'b0, hex4};
+        ADDR_HEX_HIGH: rdata = {16'b0, 1'b0, hex5, 1'b0, hex4};
         default: rdata = 0;
       endcase
     end else begin
@@ -73,8 +71,6 @@ module gpio_mmio (
       hex3 <= 7'h7f;
       hex4 <= 7'h7f;
       hex5 <= 7'h7f;
-      hex6 <= 7'h7f;
-      hex7 <= 7'h7f;
     end else if (req && we && addr_region == 16'b0) begin
       case (addr_offset)
         ADDR_LEDR: begin
@@ -90,8 +86,6 @@ module gpio_mmio (
         ADDR_HEX_HIGH: begin
           if (be[0]) hex4 <= wdata[6:0];
           if (be[1]) hex5 <= wdata[14:8];
-          if (be[2]) hex6 <= wdata[22:16];
-          if (be[3]) hex7 <= wdata[30:24];
         end
         default: ;
       endcase

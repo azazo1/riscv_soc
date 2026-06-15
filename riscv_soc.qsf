@@ -180,21 +180,3 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to hex5[3]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to hex5[4]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to hex5[5]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to hex5[6]
-
-# The referenced DE1-SoC and Selfsale QSF files only define physical pins for HEX0 to HEX5.
-# Selfsale has cs[3:0], but those pins are virtual pins, not real digit-select pins.
-# Keep HEX6 and HEX7 as virtual pins until the external wiring is confirmed.
-set_instance_assignment -name VIRTUAL_PIN ON -to hex6[0]
-set_instance_assignment -name VIRTUAL_PIN ON -to hex6[1]
-set_instance_assignment -name VIRTUAL_PIN ON -to hex6[2]
-set_instance_assignment -name VIRTUAL_PIN ON -to hex6[3]
-set_instance_assignment -name VIRTUAL_PIN ON -to hex6[4]
-set_instance_assignment -name VIRTUAL_PIN ON -to hex6[5]
-set_instance_assignment -name VIRTUAL_PIN ON -to hex6[6]
-set_instance_assignment -name VIRTUAL_PIN ON -to hex7[0]
-set_instance_assignment -name VIRTUAL_PIN ON -to hex7[1]
-set_instance_assignment -name VIRTUAL_PIN ON -to hex7[2]
-set_instance_assignment -name VIRTUAL_PIN ON -to hex7[3]
-set_instance_assignment -name VIRTUAL_PIN ON -to hex7[4]
-set_instance_assignment -name VIRTUAL_PIN ON -to hex7[5]
-set_instance_assignment -name VIRTUAL_PIN ON -to hex7[6]

@@ -12,8 +12,6 @@ module rv32i_soc_vlg_tst;
   wire [6:0] hex3;
   wire [6:0] hex4;
   wire [6:0] hex5;
-  wire [6:0] hex6;
-  wire [6:0] hex7;
 
   rv32i_soc dut (
       .clk(clk),
@@ -26,9 +24,7 @@ module rv32i_soc_vlg_tst;
       .hex2(hex2),
       .hex3(hex3),
       .hex4(hex4),
-      .hex5(hex5),
-      .hex6(hex6),
-      .hex7(hex7)
+      .hex5(hex5)
   );
 
   initial begin
@@ -63,7 +59,7 @@ module rv32i_soc_vlg_tst;
     expect_value({22'b0, ledr}, 32'h0000_02a5, 32'd1);
     expect_value(dut.u_core.u_regfile.regs[4], 32'h0000_02a5, 32'd2);
     expect_value({1'b0, hex3, 1'b0, hex2, 1'b0, hex1, 1'b0, hex0}, 32'h3024_7940, 32'd3);
-    expect_value({1'b0, hex7, 1'b0, hex6, 1'b0, hex5, 1'b0, hex4}, 32'h7802_1219, 32'd4);
+    expect_value({16'b0, 1'b0, hex5, 1'b0, hex4}, 32'h0000_1219, 32'd4);
 
     $display("rv32i_soc test passed");
     $finish;

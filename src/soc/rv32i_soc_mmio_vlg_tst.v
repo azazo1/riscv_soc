@@ -37,8 +37,6 @@ module rv32i_soc_mmio_vlg_tst;
   wire [6:0] hex3;
   wire [6:0] hex4;
   wire [6:0] hex5;
-  wire [6:0] hex6;
-  wire [6:0] hex7;
 
   localparam OPCODE_LUI = 7'b0110111;
   localparam OPCODE_OP_IMM = 7'b0010011;
@@ -109,9 +107,7 @@ module rv32i_soc_mmio_vlg_tst;
       .hex2(hex2),
       .hex3(hex3),
       .hex4(hex4),
-      .hex5(hex5),
-      .hex6(hex6),
-      .hex7(hex7)
+      .hex5(hex5)
   );
 
   initial begin
@@ -169,9 +165,9 @@ module rv32i_soc_mmio_vlg_tst;
       32'h0000_0014: imem_rdata = instr_u(20'h3f066, 5'd5, OPCODE_LUI); // lui x5, 0x3f066, 准备 HEX_LOW 段码高位
       32'h0000_0018: imem_rdata = instr_i(12'hb4f, 5'd5, 3'b000, 5'd5, OPCODE_OP_IMM); // addi x5, x5, 0xb4f, x5 = 0x3f06_5b4f
       32'h0000_001c: imem_rdata = instr_s(12'd12, 5'd5, 5'd1, 3'b010); // sw x5, 12(x1), 写 HEX0 到 HEX3
-      32'h0000_0020: imem_rdata = instr_u(20'h666d8, 5'd6, OPCODE_LUI); // lui x6, 0x666d8, 准备 HEX_HIGH 段码高位
-      32'h0000_0024: imem_rdata = instr_i(12'hd07, 5'd6, 3'b000, 5'd6, OPCODE_OP_IMM); // addi x6, x6, 0xd07, x6 = 0x666d_7d07
-      32'h0000_0028: imem_rdata = instr_s(12'd16, 5'd6, 5'd1, 3'b010); // sw x6, 16(x1), 写 HEX4 到 HEX7
+      32'h0000_0020: imem_rdata = instr_u(20'h00001, 5'd6, OPCODE_LUI); // lui x6, 0x00001, 准备 HEX_HIGH 段码高位
+      32'h0000_0024: imem_rdata = instr_i(12'h219, 5'd6, 3'b000, 5'd6, OPCODE_OP_IMM); // addi x6, x6, 0x219, x6 = 0x0000_1219
+      32'h0000_0028: imem_rdata = instr_s(12'd16, 5'd6, 5'd1, 3'b010); // sw x6, 16(x1), 写 HEX4 到 HEX5
       32'h0000_002c: imem_rdata = instr_b(13'd0, 5'd0, 5'd0, 3'b000); // beq x0, x0, 0, 原地循环停住
       default: imem_rdata = 32'h0000_0013;
     endcase
@@ -206,7 +202,7 @@ module rv32i_soc_mmio_vlg_tst;
     expect_value(u_core.u_regfile.regs[3], 32'h0000_02a5, 32'd2);
     expect_value(u_core.u_regfile.regs[4], 32'h0000_000a, 32'd3);
     expect_value({1'b0, hex3, 1'b0, hex2, 1'b0, hex1, 1'b0, hex0}, 32'h3f06_5b4f, 32'd4);
-    expect_value({1'b0, hex7, 1'b0, hex6, 1'b0, hex5, 1'b0, hex4}, 32'h666d_7d07, 32'd5);
+    expect_value({16'b0, 1'b0, hex5, 1'b0, hex4}, 32'h0000_1219, 32'd5);
     expect_value(u_ram.ram_data[0], 32'h0000_0000, 32'd6);
 
     $display("rv32i_soc_mmio test passed");

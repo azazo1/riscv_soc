@@ -19,8 +19,6 @@ module gpio_mmio_vlg_tst;
   wire [6:0] hex3;
   wire [6:0] hex4;
   wire [6:0] hex5;
-  wire [6:0] hex6;
-  wire [6:0] hex7;
 
   gpio_mmio dut (
       .clk(clk),
@@ -39,9 +37,7 @@ module gpio_mmio_vlg_tst;
       .hex2(hex2),
       .hex3(hex3),
       .hex4(hex4),
-      .hex5(hex5),
-      .hex6(hex6),
-      .hex7(hex7)
+      .hex5(hex5)
   );
 
   initial begin
@@ -97,8 +93,8 @@ module gpio_mmio_vlg_tst;
     rst_n = 1'b1;
     #1;
 
-    if (ledr !== 10'b0 || hex0 !== 7'h7f || hex7 !== 7'h7f) begin
-      $display("reset output failed: ledr=%b hex0=%b hex7=%b", ledr, hex0, hex7);
+    if (ledr !== 10'b0 || hex0 !== 7'h7f || hex5 !== 7'h7f) begin
+      $display("reset output failed: ledr=%b hex0=%b hex5=%b", ledr, hex0, hex5);
       $fatal;
     end
 
@@ -115,10 +111,13 @@ module gpio_mmio_vlg_tst;
     expect_read(32'h0100_000c, 32'h3f_06_5b_4f, 32'd5);
 
     write_reg(32'h0100_0010, 32'h66_6d_7d_07, 4'b1111);
-    expect_read(32'h0100_0010, 32'h66_6d_7d_07, 32'd6);
+    expect_read(32'h0100_0010, 32'h0000_7d07, 32'd6);
+
+    write_reg(32'h0100_0010, 32'h00_00_12_19, 4'b1100);
+    expect_read(32'h0100_0010, 32'h0000_7d07, 32'd7);
 
     write_reg(32'h0100_000c, 32'h00_00_00_40, 4'b0001);
-    expect_read(32'h0100_000c, 32'h3f_06_5b_40, 32'd7);
+    expect_read(32'h0100_000c, 32'h3f_06_5b_40, 32'd8);
 
     req = 1'b0;
     we = 1'b0;
