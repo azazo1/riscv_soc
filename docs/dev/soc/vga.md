@@ -101,7 +101,7 @@ just build-app-vga-test
 build/apps/vga_test/vga_test.bin
 ```
 
-上板时把 `vga_test.bin` 放到 FAT32 SD 卡根目录, 文件名改为 `INIT.BIN`. bootloader 会把程序加载到 `0x0000_8000` 后执行. 程序会向 SDRAM framebuffer 写入移动彩条, VGA 口显示放大后的 `160x120` 图像.
+上板时把 `vga_test.bin` 放到 FAT32 SD 卡根目录, 文件名改为 `INIT.BIN`. bootloader 会把程序加载到 `0x0201_0000` 后执行. 程序会向 SDRAM framebuffer 写入移动彩条, VGA 口显示放大后的 `160x120` 图像.
 
 仿真:
 

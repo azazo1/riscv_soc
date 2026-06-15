@@ -42,10 +42,13 @@ module rv32i_soc_vga_app_vlg_tst;
   wire sdram_udqm;
   wire sdram_we_n;
 
+  localparam APP_BASE = 32'h0201_0000;
+  localparam APP_HALF_INDEX = 32768;
+
   reg [31:0] app_image[0:2047];
 
   rv32i_soc #(
-      .RESET_PC(32'h0000_8000),
+      .RESET_PC(APP_BASE),
       .ROM_FILE("firmware/test/simple_rom.hex"),
       .UART_CLKS_PER_BIT(4)
   ) dut (
@@ -143,7 +146,8 @@ module rv32i_soc_vga_app_vlg_tst;
     $readmemh("build/tests/vga_app/vga_test.hex", app_image);
 
     for (i = 0; i < 2048; i = i + 1) begin
-      dut.u_ram.ram_data[i] = app_image[i];
+      u_sdram_model.mem[APP_HALF_INDEX+i*2] = app_image[i][15:0];
+      u_sdram_model.mem[APP_HALF_INDEX+i*2+1] = app_image[i][31:16];
     end
 
     #1;

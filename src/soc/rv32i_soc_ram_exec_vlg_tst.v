@@ -48,7 +48,7 @@ module rv32i_soc_ram_exec_vlg_tst;
   localparam OPCODE_BRANCH = 7'b1100011;
 
   rv32i_soc #(
-      .RESET_PC(32'h0000_8000),
+      .RESET_PC(32'h0000_f000),
       .ROM_FILE("firmware/test/simple_rom.hex")
   ) dut (
       .clk(clk),
@@ -171,7 +171,7 @@ module rv32i_soc_ram_exec_vlg_tst;
     gpio0_in = 36'h0;
     gpio1_in = 36'h0;
 
-    // RAM 本地 word 0 对应 CPU 地址 0x0000_8000.
+    // RAM 本地 word 0 对应 CPU 地址 0x0000_f000.
     dut.u_ram.ram_data[0] = instr_u(20'h01000, 5'd1, OPCODE_LUI);
     dut.u_ram.ram_data[1] = instr_i(12'h12a, 5'd0, 3'b000, 5'd2, OPCODE_OP_IMM);
     dut.u_ram.ram_data[2] = instr_s(12'd0, 5'd2, 5'd1, 3'b010);
@@ -186,7 +186,7 @@ module rv32i_soc_ram_exec_vlg_tst;
     #1;
 
     expect_value({22'b0, ledr}, 32'h0000_012a, 32'd1);
-    expect_value(dut.u_core.u_pc_reg.pc, 32'h0000_800c, 32'd2);
+    expect_value(dut.u_core.u_pc_reg.pc, 32'h0000_f00c, 32'd2);
 
     $display("rv32i_soc_ram_exec test passed");
     $finish;

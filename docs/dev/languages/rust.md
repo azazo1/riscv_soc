@@ -61,10 +61,10 @@ Rust 程序不能只依赖 ROM. 它至少需要 RAM 支持:
 | 区域 | 建议地址 | 作用 |
 | --- | --- | --- |
 | ROM | `0x0000_0000` | `.text`, `.rodata`, 启动代码 |
-| RAM | `0x0000_8000` | `.data`, `.bss`, stack |
+| RAM | `0x0000_f000` | `.data`, `.bss`, stack |
 | MMIO | `0x0100_0000` | LED, HEX, UART 等外设 |
 
-当前取指走 `simple_rom`, data memory 访问从 `0x0000_8000` 开始走 bus. 这样 IMEM 和 DMEM 的地址不会重叠.
+当前 ROM 程序取指走 `simple_rom`, data memory 访问从 `0x0000_f000` 开始走 bus. SD app 也可以链接到 `0x0201_0000`, 从 SDRAM 取指执行.
 
 ## 启动代码
 

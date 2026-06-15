@@ -3,7 +3,7 @@ ENTRY(_start)
 MEMORY
 {
     ROM (rx)  : ORIGIN = 0x00000000, LENGTH = 32K   /* 指令/只读数据, 从地址 0 开始 */
-    RAM (rwx) : ORIGIN = 0x00008000, LENGTH = 1K    /* 读写数据, 偏移 32K 后 */
+    RAM (rwx) : ORIGIN = 0x0000f000, LENGTH = 4K    /* 读写数据, 供 bss 和 stack 使用 */
 }
 
 SECTIONS

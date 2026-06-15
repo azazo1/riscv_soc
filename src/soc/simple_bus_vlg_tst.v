@@ -51,7 +51,7 @@ module simple_bus_vlg_tst;
   reg [31:0] sdram_rdata;
   reg sdram_ready;
 
-  localparam RAM_BASE = 32'h0000_8000;
+  localparam RAM_BASE = 32'h0000_f000;
   localparam SDRAM_BASE = 32'h0200_0000;
 
   simple_bus dut (
@@ -317,24 +317,25 @@ module simple_bus_vlg_tst;
     expect_rom_hit(32'h0000_0000, 32'h1122_3344, 32'd1);
     expect_rom_hit(32'h0000_7ffc, 32'haabb_ccdd, 32'd2);
     expect_ram_miss(32'h0000_0000, 32'd3);
-    expect_ram_hit(1'b0, 4'b1111, 32'h0000_8000, 32'h0000_0000, 32'h1122_3344, 1'b0, 32'd4);
-    expect_ram_hit(1'b1, 4'b0101, 32'h0000_800c, 32'h5566_7788, 32'h99aa_bbcc, 1'b1, 32'd5);
-    expect_ram_hit(1'b0, 4'b1111, 32'h0000_8400, 32'h0000_0000, 32'h1234_abcd, 1'b1, 32'd6);
-    expect_ram_hit(1'b0, 4'b1111, 32'h0000_fffc, 32'h0000_0000, 32'hdead_beef, 1'b1, 32'd7);
-    expect_ram_miss(32'h0001_0000, 32'd8);
+    expect_ram_miss(32'h0000_8000, 32'd4);
+    expect_ram_hit(1'b0, 4'b1111, 32'h0000_f000, 32'h0000_0000, 32'h1122_3344, 1'b0, 32'd5);
+    expect_ram_hit(1'b1, 4'b0101, 32'h0000_f00c, 32'h5566_7788, 32'h99aa_bbcc, 1'b1, 32'd6);
+    expect_ram_hit(1'b0, 4'b1111, 32'h0000_f400, 32'h0000_0000, 32'h1234_abcd, 1'b1, 32'd7);
+    expect_ram_hit(1'b0, 4'b1111, 32'h0000_fffc, 32'h0000_0000, 32'hdead_beef, 1'b1, 32'd8);
+    expect_ram_miss(32'h0001_0000, 32'd9);
 
-    expect_gpio_hit(1'b0, 4'b1111, 32'h0100_0000, 32'h0000_0000, 32'h1357_2468, 32'd9);
-    expect_gpio_hit(1'b1, 4'b0011, 32'h0100_0010, 32'h0000_03ff, 32'h2468_1357, 32'd10);
+    expect_gpio_hit(1'b0, 4'b1111, 32'h0100_0000, 32'h0000_0000, 32'h1357_2468, 32'd10);
+    expect_gpio_hit(1'b1, 4'b0011, 32'h0100_0010, 32'h0000_03ff, 32'h2468_1357, 32'd11);
 
-    expect_gpio_hit(1'b0, 4'b1111, 32'h0100_00fc, 32'h0000_0000, 32'h0100_00fc, 32'd11);
-    expect_uart_hit(1'b1, 4'b1111, 32'h0100_0100, 32'h5566_7788, 32'h0000_0003, 32'd12);
-    expect_uart_hit(1'b0, 4'b1111, 32'h0100_0104, 32'h0000_0000, 32'h0000_0001, 32'd13);
+    expect_gpio_hit(1'b0, 4'b1111, 32'h0100_00fc, 32'h0000_0000, 32'h0100_00fc, 32'd12);
+    expect_uart_hit(1'b1, 4'b1111, 32'h0100_0100, 32'h5566_7788, 32'h0000_0003, 32'd13);
+    expect_uart_hit(1'b0, 4'b1111, 32'h0100_0104, 32'h0000_0000, 32'h0000_0001, 32'd14);
 
-    expect_spi_hit(1'b1, 4'b0001, 32'h0100_0200, 32'h0000_00a5, 32'h0000_0002, 32'd14);
-    expect_sdram_hit(1'b1, 4'b1111, 32'h0200_0000, 32'h1122_3344, 32'haabb_ccdd, 1'b0, 32'd15);
-    expect_sdram_hit(1'b0, 4'b1111, 32'h0200_0004, 32'h0000_0000, 32'h5566_7788, 1'b1, 32'd16);
-    expect_sdram_hit(1'b0, 4'b1111, 32'h05ff_fffc, 32'h0000_0000, 32'h99aa_bbcc, 1'b1, 32'd17);
-    expect_ram_miss(32'h0600_0000, 32'd18);
+    expect_spi_hit(1'b1, 4'b0001, 32'h0100_0200, 32'h0000_00a5, 32'h0000_0002, 32'd15);
+    expect_sdram_hit(1'b1, 4'b1111, 32'h0200_0000, 32'h1122_3344, 32'haabb_ccdd, 1'b0, 32'd16);
+    expect_sdram_hit(1'b0, 4'b1111, 32'h0200_0004, 32'h0000_0000, 32'h5566_7788, 1'b1, 32'd17);
+    expect_sdram_hit(1'b0, 4'b1111, 32'h05ff_fffc, 32'h0000_0000, 32'h99aa_bbcc, 1'b1, 32'd18);
+    expect_ram_miss(32'h0600_0000, 32'd19);
 
     req = 1'b0;
     we = 1'b1;

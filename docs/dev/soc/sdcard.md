@@ -9,8 +9,8 @@
 如果后续要把程序从 SD 卡启动进来, 更稳妥的路线是:
 
 1. 保留一个小 boot_rom, 先从 ROM 启动.
-2. 由外接 SPI SD 模块配合 bootloader, 把镜像搬到 RAM 或 SDRAM.
-3. 再跳转到 RAM 或 SDRAM 执行.
+2. 由外接 SPI SD 模块配合 bootloader, 把镜像搬到 SDRAM.
+3. 再跳转到 SDRAM 执行.
 
 如果一定要用 J11, 就需要走 HPS 侧, 先由 HPS 访问 microSD, 再通过 HPS-to-FPGA bridge 写入 FPGA 侧存储器.
 
@@ -30,8 +30,8 @@ bootloader 的任务是:
 2. 读取 MBR 或直接读取 FAT32 BPB.
 3. 解析 FAT32 参数和根目录 cluster.
 4. 查找根目录中的 `INIT.BIN`.
-5. 把 `INIT.BIN` 拷贝到 `0x0000_8000`.
-6. 跳转到 `0x0000_8000` 执行.
+5. 把 `INIT.BIN` 拷贝到 `0x0201_0000`.
+6. 跳转到 `0x0201_0000` 执行.
 
 第一版 FAT32 支持范围:
 
@@ -41,7 +41,7 @@ bootloader 的任务是:
 - FAT32 根目录遍历.
 - 只查找短文件名 `INIT.BIN`.
 - 支持跨 cluster 文件链.
-- `INIT.BIN` 最大 28 KiB, 因为当前 RAM 从 `0x0000_8000` 到 `0x0000_ffff`.
+- `INIT.BIN` 最大 1 MiB, 当前默认加载到 SDRAM `0x0201_0000`.
 - 不支持长文件名, 子目录, 写入, exFAT, FAT16.
 
 ## 和当前 ROM 的关系

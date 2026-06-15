@@ -10,7 +10,7 @@
 - `firmware/c_demo/main.c`: C 示例程序.
 - `firmware/c_demo/c_demo.hex`: 给 `simple_rom` 使用的 ROM 镜像.
 - `apps/board_app/main.c`: 给 bootloader 加载的上板观察程序.
-- `apps/linker.ld`: SD 启动程序链接脚本, 程序入口放在 `0x0000_8000`.
+- `apps/linker.ld`: SD 启动程序链接脚本, 程序入口放在 `0x0201_0000`.
 - `build/apps/board_app/board_app.bin`: 按 SD 启动地址链接的应用 raw binary.
 
 ## 地址布局
@@ -20,7 +20,7 @@
 | 区域 | 起始地址 | 大小 | 用途 |
 | --- | --- | --- | --- |
 | ROM | `0x0000_0000` | `8K` | `.text` 和 `.rodata` |
-| RAM | `0x0000_8000` | `1K` | `.data`, `.bss`, stack |
+| RAM | `0x0000_f000` | `4K` | `.data`, `.bss`, stack |
 
 `simple_rom` 的默认容量是 2048 words, 也就是 8 KiB. 取指仍然直连 ROM. data bus 也可以只读访问 `0x0000_0000` 到 `0x0000_7fff`, 这样 C 字符串常量放在 `.rodata` 后, `lbu` 可以正常把字符读出来.
 
@@ -28,9 +28,9 @@ SD 启动程序使用这个内存布局:
 
 | 区域 | 起始地址 | 大小 | 用途 |
 | --- | --- | --- | --- |
-| RAM | `0x0000_8000` | `32K` | `.text`, `.rodata`, `.data`, `.bss`, stack |
+| SDRAM | `0x0201_0000` | `1M` | `.text`, `.rodata`, `.data`, `.bss`, stack |
 
-bootloader 会把 `INIT.BIN` 从 SD 卡拷贝到 `0x0000_8000`, 然后跳到这个地址执行. 因此 SD 启动程序必须使用 `apps/linker.ld` 链接, 不能直接复用 ROM 地址的 `firmware/c_demo/linker.ld`.
+bootloader 会把 `INIT.BIN` 从 SD 卡拷贝到 `0x0201_0000`, 然后跳到这个地址执行. 因此 SD 启动程序必须使用 `apps/linker.ld` 链接, 不能直接复用 ROM 地址的 `firmware/c_demo/linker.ld`.
 
 ## 头文件
 
@@ -69,12 +69,12 @@ just build-app-board
 
 它会生成:
 
-- `build/apps/board_app/board_app.elf`: 按 `0x0000_8000` 链接的 ELF 文件.
+- `build/apps/board_app/board_app.elf`: 按 `0x0201_0000` 链接的 ELF 文件.
 - `build/apps/board_app/board_app.bin`: 应用 raw binary.
 
 当前 `board_app.bin` 来自 `apps/board_app/main.c`. 它不是 hex 文件, 不能给 `$readmemh` 直接使用. 上板时把它复制到 FAT32 SD 卡根目录, 文件名改成 `INIT.BIN`.
 
-这类 app 支持带初始值的全局变量. 原因是 `init_app` 的 `.text`, `.rodata`, `.data` 都在 RAM 地址空间里, bootloader 会把整个 binary 直接加载到 `0x0000_8000`. `.bss` 仍然由 `startup.S` 清零.
+这类 app 支持带初始值的全局变量. 原因是 app 的 `.text`, `.rodata`, `.data` 都在 SDRAM 地址空间里, bootloader 会把整个 binary 直接加载到 `0x0201_0000`. `.bss` 仍然由 `startup.S` 清零.
 
 生成软浮点测试程序:
 
@@ -107,7 +107,7 @@ just build-app-soft-float-test
 ## 当前限制
 
 - 支持 `.bss` 清零.
-- 支持 stack, 当前栈顶是 `0x0000_8400`.
+- 支持 stack, ROM C demo 栈顶是 `0x0001_0000`, SD app 栈顶是 `0x0211_0000`.
 - 直接放进 ROM 的 `firmware-c-demo` 暂时不支持带初始值的全局变量, 因为还没有从 ROM 复制 `.data` 到 RAM 的启动逻辑.
 - 通过 SD 启动的 app binary 支持 initialized `.data`.
 - 支持软浮点 helper, 但不支持硬件 F/D 浮点指令.

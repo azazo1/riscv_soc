@@ -134,22 +134,70 @@ module rv32i_soc #(
   wire [31:0] ram_imem_addr;
   wire [31:0] ram_imem_rdata;
   wire ram_imem_ready;
+  wire imem_sdram_req;
+  wire [31:0] imem_sdram_addr;
+  wire [31:0] imem_sdram_rdata;
+  wire imem_sdram_ready;
 
   localparam ROM_LIMIT = 32'h0000_8000;
-  localparam RAM_BASE = 32'h0000_8000;
-  localparam RAM_LIMIT = 32'h0001_0000; // todo 支持 sdram 之后增大这个
+  localparam RAM_BASE = 32'h0000_f000;
+  localparam RAM_LIMIT = 32'h0001_0000;
+  localparam SDRAM_BASE = 32'h0200_0000;
+  localparam SDRAM_LIMIT = 32'h0600_0000;
 
   wire imem_rom_hit = imem_addr < ROM_LIMIT;
   wire imem_ram_hit = (imem_addr >= RAM_BASE) && (imem_addr < RAM_LIMIT);
+  wire imem_sdram_hit = (imem_addr >= SDRAM_BASE) && (imem_addr < SDRAM_LIMIT);
+  wire imem_sdram_cache_hit;
+  wire imem_sdram_access_ready;
+
+  reg imem_sdram_busy;
+  reg imem_sdram_valid;
+  reg [31:0] imem_sdram_cpu_addr_q;
+  reg [31:0] imem_sdram_req_addr_q;
+  reg [31:0] imem_sdram_cache_addr_q;
+  reg [31:0] imem_sdram_cache_data_q;
 
   assign ram_imem_addr = imem_addr - RAM_BASE;
+  assign imem_sdram_addr = imem_sdram_req_addr_q;
+  assign imem_sdram_req = imem_sdram_busy;
+  assign imem_sdram_cache_hit = imem_sdram_valid && imem_sdram_cache_addr_q == imem_addr;
+  assign imem_sdram_access_ready = imem_sdram_cache_hit || (imem_sdram_busy && imem_sdram_ready);
   assign imem_rdata = imem_rom_hit ? rom_imem_rdata :
-                      imem_ram_hit ? ram_imem_rdata : 32'h0000_0013;
+                      imem_ram_hit ? ram_imem_rdata :
+                      imem_sdram_hit ?
+                      (imem_sdram_cache_hit ? imem_sdram_cache_data_q : imem_sdram_rdata) :
+                      32'h0000_0013;
   assign imem_ready = imem_rom_hit ? 1'b1 :
-                      imem_ram_hit ? ram_imem_ready : 1'b1;
+                      imem_ram_hit ? ram_imem_ready :
+                      imem_sdram_hit ? imem_sdram_access_ready : 1'b1;
 
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      imem_sdram_busy <= 1'b0;
+      imem_sdram_valid <= 1'b0;
+      imem_sdram_cpu_addr_q <= 32'b0;
+      imem_sdram_req_addr_q <= 32'b0;
+      imem_sdram_cache_addr_q <= 32'b0;
+      imem_sdram_cache_data_q <= 32'h0000_0013;
+    end else if (imem_sdram_busy) begin
+      if (imem_sdram_ready) begin
+        imem_sdram_busy <= 1'b0;
+        imem_sdram_valid <= 1'b1;
+        imem_sdram_cache_addr_q <= imem_sdram_cpu_addr_q;
+        imem_sdram_cache_data_q <= imem_sdram_rdata;
+      end
+    end else if (imem_sdram_hit && !imem_sdram_cache_hit) begin
+      imem_sdram_busy <= 1'b1;
+      imem_sdram_cpu_addr_q <= imem_addr;
+      imem_sdram_req_addr_q <= imem_addr - SDRAM_BASE;
+    end
+  end
 
-  simple_dual_port_ram u_ram (
+  simple_dual_port_ram #(
+      .RAM_WORDS(1024),
+      .RAM_WORD_ADDR_BITS(10)
+  ) u_ram (
       .clk(clk),
       .rst_n(rst_n),
       .req(ram_req),
@@ -264,6 +312,10 @@ module rv32i_soc #(
       .cpu_wdata(sdram_wdata),
       .cpu_rdata(sdram_rdata),
       .cpu_ready(sdram_ready),
+      .imem_req(imem_sdram_req),
+      .imem_addr(imem_sdram_addr),
+      .imem_rdata(imem_sdram_rdata),
+      .imem_ready(imem_sdram_ready),
       .vga_req(vga_sdram_req),
       .vga_addr(vga_sdram_addr),
       .vga_rdata(vga_sdram_rdata),

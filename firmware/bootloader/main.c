@@ -1,7 +1,7 @@
 #include "rv32i_soc.h"
 
-#define APP_LOAD_ADDR 0x00008000u
-#define APP_MAX_SIZE  0x00007000u
+#define APP_LOAD_ADDR 0x02010000u
+#define APP_MAX_SIZE  0x00100000u
 
 #define SD_CMD0   0u
 #define SD_CMD8   8u

@@ -48,7 +48,7 @@ firmware-c-demo:
     zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/firmware/c_demo/main.o firmware/c_demo/main.c
     @# startup.S 用 GNU as 汇编, 明确限制为 RV32I.
     riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/firmware/c_demo/startup.o firmware/c_demo/startup.S
-    @# linker.ld 固定 ROM=0x0000_0000, RAM=0x0000_8000, 并提供 _stack_top 等启动符号.
+    @# linker.ld 固定 ROM=0x0000_0000, RAM=0x0000_f000, 并提供 _stack_top 等启动符号.
     @# 用 zig cc 链接, 让 compiler-rt 提供 __mulsi3, __divsi3 等软件整数 helper.
     zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,firmware/c_demo/linker.ld -Wl,--gc-sections -o {{ build_dir }}/firmware/c_demo/c_demo.elf {{ build_dir }}/firmware/c_demo/startup.o {{ build_dir }}/firmware/c_demo/main.o
     @# C 程序需要 .text 和 .rodata, 因为字符串常量放在 .rodata.
@@ -70,13 +70,13 @@ firmware-bootloader:
 
 build-app-board:
     @mkdir -p {{ build_dir }}/apps/board_app
-    @# board_app.bin 是普通应用镜像, 入口地址按 0x0000_8000 链接.
+    @# board_app.bin 是普通应用镜像, 入口地址按 0x0201_0000 链接到 SDRAM.
     @# 上板时再把选中的 .bin 文件放到 SD 卡根目录并命名为 INIT.BIN.
     zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/apps/board_app/main.o apps/board_app/main.c
     riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/apps/board_app/startup.o firmware/c_demo/startup.S
     @# 用 zig cc 链接, 让 compiler-rt 提供 __mulsi3, __divsi3 等软件整数 helper.
     zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,apps/linker.ld -Wl,--gc-sections -o {{ build_dir }}/apps/board_app/board_app.elf {{ build_dir }}/apps/board_app/startup.o {{ build_dir }}/apps/board_app/main.o
-    @# init_app 整体在 RAM 中运行, 所以 .data 初值可以直接放进 .bin.
+    @# app 整体在 SDRAM 中运行, 所以 .data 初值可以直接放进 .bin.
     riscv64-elf-objcopy -O binary -j .text -j .rodata -j .data {{ build_dir }}/apps/board_app/board_app.elf {{ build_dir }}/apps/board_app/board_app.bin
     @riscv64-elf-size {{ build_dir }}/apps/board_app/board_app.elf
 

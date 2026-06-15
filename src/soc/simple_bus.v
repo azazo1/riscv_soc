@@ -61,15 +61,15 @@ module simple_bus (
     input wire sdram_ready
 );
 
-  localparam RAM_BASE = 32'h0000_8000;
-  localparam RAM_LIMIT = 32'h0001_0000; // todo 支持 sdram 之后增大
+  localparam RAM_BASE = 32'h0000_f000;
+  localparam RAM_LIMIT = 32'h0001_0000;
   localparam ROM_LIMIT = 32'h0000_8000;
   localparam SDRAM_BASE = 32'h0200_0000;
   localparam SDRAM_LIMIT = 32'h0600_0000;
 
   // 暂时定一个简单的 memory map
   // 0x0000_0000 - 0x0000_7fff IMEM, 取指直连 ROM, data bus 可只读访问常量
-  // 0x0000_8000 - 0x0000_ffff RAM, bus 转成本地地址后访问 simple_ram // TODO 支持 sdram 之后增大这个
+  // 0x0000_f000 - 0x0000_ffff RAM, 给 bootloader 的 .bss 和 stack 使用
   // 0x0100_0000 - 0x0100_00ff MMIO-GPIO, 内部具体映射查看 gpio_mmio.v
   // 0x0100_0100 - 0x0100_01ff MMIO-UART, 内部具体映射查看 uart_tx_mmio.v
   // 0x0100_0200 - 0x0100_02ff MMIO-SPI, 内部具体映射查看 spi_master_mmio.v

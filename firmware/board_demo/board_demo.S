@@ -12,7 +12,7 @@
 #
 # 内存映射:
 #   0x0000_0000  IMEM
-#   0x0000_8000  RAM
+#   0x0000_f000  RAM
 #   0x0100_0000  LEDR
 #   0x0100_0004  SW
 #   0x0100_0008  KEY
@@ -79,8 +79,8 @@ fail_branch:
     beq  x0, x0, finish
 
 test_ram:
-    lui  x20, 0x00008         # x20 = RAM base 0x0000_8000
-    addi x20, x20, 128        # RAM 测试地址 0x0000_8080
+    lui  x20, 0x0000f         # x20 = RAM base 0x0000_f000
+    addi x20, x20, 128        # RAM 测试地址 0x0000_f080
     lui  x21, 0x12345
     addi x21, x21, 0x678      # x21 = 0x1234_5678
     sw   x21, 0(x20)

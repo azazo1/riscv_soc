@@ -42,10 +42,13 @@ module rv32i_soc_init_data_vlg_tst;
   wire sdram_udqm;
   wire sdram_we_n;
 
+  localparam APP_BASE = 32'h0201_0000;
+  localparam APP_HALF_INDEX = 32768;
+
   reg [31:0] app_image[0:255];
 
   rv32i_soc #(
-      .RESET_PC(32'h0000_8000),
+      .RESET_PC(APP_BASE),
       .ROM_FILE("firmware/test/simple_rom.hex")
   ) dut (
       .clk(clk),
@@ -91,7 +94,10 @@ module rv32i_soc_init_data_vlg_tst;
       .sdram_we_n(sdram_we_n)
   );
 
-  sdram_model u_sdram_model (
+  sdram_model #(
+      .MEM_WORDS(65536),
+      .MEM_ADDR_BITS(16)
+  ) u_sdram_model (
       .clk(sdram_clk),
       .sdram_addr(sdram_addr),
       .sdram_ba(sdram_ba),
@@ -123,6 +129,7 @@ module rv32i_soc_init_data_vlg_tst;
 
   initial begin
     integer i;
+    integer wait_count;
 
     rst_n = 1'b1;
     sw = 10'h000;
@@ -136,7 +143,8 @@ module rv32i_soc_init_data_vlg_tst;
     $readmemh("build/tests/init_data_test/init_data_test.hex", app_image);
 
     for (i = 0; i < 256; i = i + 1) begin
-      dut.u_ram.ram_data[i] = app_image[i];
+      u_sdram_model.mem[APP_HALF_INDEX+i*2] = app_image[i][15:0];
+      u_sdram_model.mem[APP_HALF_INDEX+i*2+1] = app_image[i][31:16];
     end
 
     #1;
@@ -144,7 +152,11 @@ module rv32i_soc_init_data_vlg_tst;
     repeat (2) @(posedge clk);
     rst_n = 1'b1;
 
-    repeat (80) @(posedge clk);
+    wait_count = 0;
+    while (ledr !== 10'h003 && wait_count < 80000) begin
+      wait_count = wait_count + 1;
+      @(posedge clk);
+    end
     #1;
 
     expect_value({22'b0, ledr}, 32'h0000_0003, 32'd1);
