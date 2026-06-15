@@ -48,6 +48,8 @@ just firmware-c-demo
 - `build/firmware/c_demo/c_demo.bin`: 提取后的二进制镜像.
 - `firmware/c_demo/c_demo.hex`: `simple_rom` 最终读取的 hex 文件.
 
+`firmware/c_demo/c_demo.hex` 只包含实际固件 word. 如果 CPU 跑到 hex 未初始化的 ROM 区域, 读到的内容不作为稳定行为依赖.
+
 ## 参数含义
 
 `zig cc` 用来把 C 编译成 RISC-V 目标文件:

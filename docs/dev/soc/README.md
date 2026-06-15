@@ -48,6 +48,7 @@ rv32i_core
 - 默认 `ROM_FILE` 是 `firmware/board_demo/board_demo.hex`.
 - `ROM_WORDS` 默认是 8192, 对应 32 KiB.
 - `ROM_WORDS` 决定可访问的 word 数, 超出范围时返回 `32'h0000_0013`.
+- 固件 hex 只包含实际固件 word, 未写入的 ROM 内容不作为稳定行为依赖.
 
 固件源文件是 `firmware/board_demo/board_demo.S`. 运行 `just firmware-board-demo` 会重新生成 `firmware/board_demo/board_demo.hex`.
 

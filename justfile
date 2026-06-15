@@ -6,7 +6,7 @@ default:
 
 build-verilog-with top +sources:
     @mkdir -p {{ build_dir }}/{{ top }}
-    @verilator --binary --top-module {{ top }} --Mdir {{ build_dir }}/{{ top }} {{ sources }}
+    @verilator -I./src -I./src/soc --binary --top-module {{ top }} --Mdir {{ build_dir }}/{{ top }} {{ sources }}
 
 run-verilog-with top +sources:
     @just build-verilog-with {{ top }} {{ sources }}
@@ -31,15 +31,15 @@ firmware-board-demo:
     riscv64-elf-ld -m elf32lriscv -Ttext=0x00000000 -e _start -o {{ build_dir }}/firmware/board_demo/board_demo.elf {{ build_dir }}/firmware/board_demo/board_demo.o
     @# ROM 只需要 .text 指令段, 不把 ELF 头或符号表写进镜像.
     riscv64-elf-objcopy -O binary -j .text {{ build_dir }}/firmware/board_demo/board_demo.elf {{ build_dir }}/firmware/board_demo/board_demo.bin
-    @# xxd -e -g 4 -c 4 把 little-endian 字节按 32-bit 指令 word 输出给 $readmemh.
-    @xxd -e -g 4 -c 4 {{ build_dir }}/firmware/board_demo/board_demo.bin | awk '{ print $2 }' > firmware/board_demo/board_demo.hex
+    @# bin-to-rom-hex 只写入实际固件 word, 不额外填充 ROM 空间.
+    @just bin-to-rom-hex {{ build_dir }}/firmware/board_demo/board_demo.bin firmware/board_demo/board_demo.hex
 
 firmware-uart-demo:
     @mkdir -p {{ build_dir }}/firmware/uart_demo
     riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/firmware/uart_demo/uart_demo.o firmware/uart_demo/uart_demo.S
     riscv64-elf-ld -m elf32lriscv -Ttext=0x00000000 -e _start -o {{ build_dir }}/firmware/uart_demo/uart_demo.elf {{ build_dir }}/firmware/uart_demo/uart_demo.o
     riscv64-elf-objcopy -O binary -j .text {{ build_dir }}/firmware/uart_demo/uart_demo.elf {{ build_dir }}/firmware/uart_demo/uart_demo.bin
-    @xxd -e -g 4 -c 4 {{ build_dir }}/firmware/uart_demo/uart_demo.bin | awk '{ print $2 }' > firmware/uart_demo/uart_demo.hex
+    @just bin-to-rom-hex {{ build_dir }}/firmware/uart_demo/uart_demo.bin firmware/uart_demo/uart_demo.hex
 
 firmware-c-demo:
     @mkdir -p {{ build_dir }}/firmware/c_demo
@@ -52,8 +52,12 @@ firmware-c-demo:
     riscv64-elf-ld -m elf32lriscv -T firmware/c_demo/linker.ld -o {{ build_dir }}/firmware/c_demo/c_demo.elf {{ build_dir }}/firmware/c_demo/startup.o {{ build_dir }}/firmware/c_demo/main.o
     @# C 程序需要 .text 和 .rodata, 因为字符串常量放在 .rodata.
     riscv64-elf-objcopy -O binary -j .text -j .rodata {{ build_dir }}/firmware/c_demo/c_demo.elf {{ build_dir }}/firmware/c_demo/c_demo.bin
-    @xxd -e -g 4 -c 4 {{ build_dir }}/firmware/c_demo/c_demo.bin | awk '{ print $2 }' > firmware/c_demo/c_demo.hex
+    @just bin-to-rom-hex {{ build_dir }}/firmware/c_demo/c_demo.bin firmware/c_demo/c_demo.hex
     @riscv64-elf-size {{ build_dir }}/firmware/c_demo/c_demo.elf
+
+bin-to-rom-hex input output:
+    @# xxd -e -g 4 -c 4 把 little-endian 字节按 32-bit word 输出给 $readmemh.
+    @xxd -e -g 4 -c 4 {{ input }} | awk '{ print $2 }' > {{ output }}
 
 test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
 

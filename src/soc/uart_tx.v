@@ -73,8 +73,8 @@ module uart_tx #(
               tx_reg <= 1'b1;
               state  <= STATE_STOP;
             end else begin
-              bit_index <= bit_index + 1;
-              tx_reg <= data_reg[bit_index+1];
+              bit_index <= bit_index + 3'd1;
+              tx_reg <= data_reg[bit_index+3'd1];
             end
           end else begin
             clk_count <= clk_count + 1;

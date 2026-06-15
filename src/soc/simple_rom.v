@@ -14,12 +14,10 @@ module simple_rom #(
 );
 
   reg [31:0] rom[0:ROM_WORDS-1];
-  integer i;
 
-  initial begin // 这个 initial 块是可以被综合的, 其读取 hex 文件作为 rom, 会被 quartus 整合进内存当中.
-    for (i = 0; i < ROM_WORDS; i = i + 1) begin
-      rom[i] = 32'h0000_0013;  // 没有写入 hex 的位置默认是 nop.
-    end
+  // 这个 initial 块可以被综合, Quartus 会把 hex 内容整合进 ROM.
+  // 固件 hex 固定补齐到 ROM_WORDS 个 word, 这样综合和仿真看到的 ROM 内容一致.
+  initial begin
     $readmemh(ROM_FILE, rom);
   end
 
