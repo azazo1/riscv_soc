@@ -75,6 +75,14 @@ just firmware-init-bin
 
 `init.bin` 支持带初始值的全局变量. 原因是 `init_app` 的 `.text`, `.rodata`, `.data` 都在 RAM 地址空间里, bootloader 会把整个 binary 直接加载到 `0x0000_8000`. `.bss` 仍然由 `startup.S` 清零.
 
+生成软浮点测试程序:
+
+```shell
+just build-app-soft-float-test
+```
+
+这个测试允许 C 代码使用 `float`, 但 CPU 不实现 F 扩展. Zig 链接时会带上 compiler-rt builtins, 例如 `__addsf3`, `__mulsf3`, `__fixsfsi`, 这些函数内部只使用整数指令完成单精度浮点运算. 链接时需要配合 `--gc-sections`, 否则没有用到的运行时代码会让镜像变大.
+
 ## 参数含义
 
 `zig cc` 用来把 C 编译成 RISC-V 目标文件:
@@ -101,6 +109,7 @@ just firmware-init-bin
 - 支持 stack, 当前栈顶是 `0x0000_8400`.
 - 直接放进 ROM 的 `firmware-c-demo` 暂时不支持带初始值的全局变量, 因为还没有从 ROM 复制 `.data` 到 RAM 的启动逻辑.
 - 通过 SD 启动的 `init.bin` 支持 initialized `.data`.
+- 支持软浮点 helper, 但不支持硬件 F/D 浮点指令.
 - 暂时没有 `malloc`, `printf`, 中断和系统调用.
 - C 编译后必须检查不能出现 RVC, CSR, A/F/D 等当前 CPU 不支持的指令.
 

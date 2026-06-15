@@ -76,7 +76,7 @@ firmware-init-bin:
     riscv64-elf-objcopy -O binary -j .text -j .rodata -j .data {{ build_dir }}/firmware/sdcard/init.elf {{ build_dir }}/firmware/sdcard/init.bin
     @riscv64-elf-size {{ build_dir }}/firmware/sdcard/init.elf
 
-build-init-data-test-app:
+build-app-init-data-test:
     @mkdir -p {{ build_dir }}/tests/init_data_test
     zig cc -target riscv32-freestanding -mcpu=baseline_rv32-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/tests/init_data_test/main.o firmware/init_app/init_data_test.c
     riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/tests/init_data_test/startup.o firmware/c_demo/startup.S
@@ -85,11 +85,22 @@ build-init-data-test-app:
     @just bin-to-rom-hex {{ build_dir }}/tests/init_data_test/init_data_test.bin {{ build_dir }}/tests/init_data_test/init_data_test.hex
     @riscv64-elf-size {{ build_dir }}/tests/init_data_test/init_data_test.elf
 
+build-app-soft-float-test:
+    @mkdir -p {{ build_dir }}/tests/soft_float_test
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -ffunction-sections -fdata-sections -I firmware/include -c -o {{ build_dir }}/tests/soft_float_test/main.o firmware/init_app/soft_float_test.c
+    riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/tests/soft_float_test/startup.o firmware/c_demo/startup.S
+    @# 用 zig cc 链接, 让 Zig 自动带上 compiler-rt builtins, 例如 __addsf3, __mulsf3.
+    @# --gc-sections 会丢弃没有用到的 helper, 否则软浮点运行时会明显变大.
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -ffunction-sections -fdata-sections -Wl,--gc-sections -Wl,-T,firmware/init_app/linker.ld -o {{ build_dir }}/tests/soft_float_test/soft_float_test.elf {{ build_dir }}/tests/soft_float_test/startup.o {{ build_dir }}/tests/soft_float_test/main.o
+    riscv64-elf-objcopy -O binary -j .text -j .rodata -j .data {{ build_dir }}/tests/soft_float_test/soft_float_test.elf {{ build_dir }}/tests/soft_float_test/soft_float_test.bin
+    @just bin-to-rom-hex {{ build_dir }}/tests/soft_float_test/soft_float_test.bin {{ build_dir }}/tests/soft_float_test/soft_float_test.hex
+    @riscv64-elf-size {{ build_dir }}/tests/soft_float_test/soft_float_test.elf
+
 bin-to-rom-hex input output:
     @# xxd -e -g 4 -c 4 把 little-endian 字节按 32-bit word 输出给 $readmemh.
     @xxd -e -g 4 -c 4 {{ input }} | awk '{ print $2 }' > {{ output }}
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-rv32i-core-m-ext test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-ram-exec test-rv32i-soc-init-data test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-rv32i-core-m-ext test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-ram-exec test-rv32i-soc-init-data test-rv32i-soc-soft-float test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -151,8 +162,11 @@ test-rv32i-soc-mmio:
 test-rv32i-soc-ram-exec:
     @just run-verilog rv32i_soc_ram_exec_vlg_tst
 
-test-rv32i-soc-init-data: build-init-data-test-app
+test-rv32i-soc-init-data: build-app-init-data-test
     @just run-verilog rv32i_soc_init_data_vlg_tst
+
+test-rv32i-soc-soft-float: build-app-soft-float-test
+    @just run-verilog rv32i_soc_soft_float_vlg_tst
 
 test-rv32i-soc-uart-rom: firmware-uart-demo
     @just run-verilog rv32i_soc_uart_rom_vlg_tst
