@@ -1,5 +1,5 @@
 {
   "verilog.linting.linter": "verilator",
-  "verilog.linting.verilator.arguments": "-y src/core -y src/soc",
+  "verilog.linting.verilator.arguments": "-y src/core -y src/soc -y src",
   "editor.tabSize": 2
 }

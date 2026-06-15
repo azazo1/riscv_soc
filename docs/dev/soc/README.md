@@ -1,18 +1,34 @@
 # SoC 开发说明
 
-这个目录记录 CPU 外围封装的设计思路. 当前阶段先做最小 SoC, 目标是把已经能单独运行的 `rv32i_core` 接到正式的 ROM 和 RAM 模块上.
+这个目录记录 CPU 外围封装的设计思路. 当前阶段已经从最小 ROM/RAM SoC 推进到带 data bus 和 GPIO MMIO 的小系统.
 
 ## 当前边界
 
-第一版 SoC 只负责把 CPU, ROM, RAM 连接起来.
+当前 SoC 负责连接 CPU, 指令 ROM, 数据 RAM, 数据总线, GPIO MMIO.
 
-- CPU 仍然使用 `rv32i_core`.
-- 指令从 `simple_rom` 读取.
-- 数据读写走 `simple_ram`.
-- 暂时不接 UART, LED, timer, SDRAM.
-- 暂时不做复杂总线协议.
+- CPU 使用 `rv32i_core`.
+- 指令从 `simple_rom` 读取, 暂时不走 data bus.
+- 数据读写从 core 发出, 先进入 `simple_bus`.
+- `simple_bus` 按地址高位选择 RAM 或 GPIO MMIO.
+- `gpio_mmio` 提供 LEDR, SW, KEY, HEX0..HEX7 的寄存器访问.
+- 暂时没有 UART, timer, interrupt, SDRAM.
+- 暂时没有 `ready`/`valid` 等多周期握手.
 
-这一阶段的目标不是追求完整外设, 而是让 CPU 不再依赖 testbench 里的临时 instruction case 和 data_mem 数组.
+这一阶段的目标是让 CPU 能通过普通 load/store 指令访问片上 RAM 和基础板载外设.
+
+## 总体结构
+
+```text
+rv32i_core
+  imem_addr  -> simple_rom.addr
+  imem_rdata <- simple_rom.rdata
+
+  dmem_*     -> simple_bus
+                   -> simple_ram
+                   -> gpio_mmio
+```
+
+当前仍然是 Harvard 结构. 取指接口独立连接 ROM, 数据接口连接 bus. 这样可以先避免取指和访存之间的仲裁问题.
 
 ## 模块分工
 
@@ -40,43 +56,115 @@
 - 输入 `wdata`, 表示写数据.
 - 输出 `rdata`, 表示读数据.
 
-第一版 RAM 可以使用组合读, 同步写. 这样可以匹配当前 `rv32i_core` 对 load 数据当周期可见的假设.
+第一版 RAM 使用组合读, 同步写. 这样可以匹配当前 `rv32i_core` 对 load 数据当周期可见的假设.
 
 写入时按 `be` 分字节更新 32 位 word. 这样 `SB`, `SH`, `SW` 都可以共用同一个 RAM 模块.
 
+### `simple_bus`
+
+`simple_bus` 是当前的数据访问译码器.
+
+- 接收 core 的 `dmem_req`, `dmem_we`, `dmem_be`, `dmem_addr`, `dmem_wdata`.
+- 当地址落在 RAM 区间时, 转发到 `simple_ram`.
+- 当地址落在 MMIO 区间时, 转发到 `gpio_mmio`.
+- 读数据从被命中的设备返回给 core.
+- 当前 `clk` 预留给后续同步总线, 仲裁, SDRAM 或等待状态.
+
+当前译码比较粗, 只看 `addr[31:24]`.
+
+| 地址范围 | 目标 | 说明 |
+| --- | --- | --- |
+| `0x0000_0000` - `0x00ff_ffff` | RAM | 当前实际 RAM 只有 256 words |
+| `0x0100_0000` - `0x01ff_ffff` | MMIO | 先转发给 GPIO MMIO |
+| 其他地址 | none | 读返回 0, 写无效果 |
+
+### `gpio_mmio`
+
+`gpio_mmio` 是 GPIO 外设寄存器块.
+
+bus 只做大范围译码, 设备内部再判断精确寄存器窗口. 当前 GPIO 只响应 `0x0100_0000` - `0x0100_00ff` 内部窗口.
+
+| 地址 | 名称 | 方向 | 有效位 | 作用 |
+| --- | --- | --- | --- | --- |
+| `0x0100_0000` | `LEDR` | R/W | `[9:0]` | 控制 10 个红色 LED |
+| `0x0100_0004` | `SW` | R | `[9:0]` | 读取 10 个拨码开关 |
+| `0x0100_0008` | `KEY` | R | `[3:0]` | 读取 4 个按键 |
+| `0x0100_000c` | `HEX_LOW` | R/W | 4 bytes, 每 byte 低 7 bit | 控制 HEX0 到 HEX3 |
+| `0x0100_0010` | `HEX_HIGH` | R/W | 4 bytes, 每 byte 低 7 bit | 控制 HEX4 到 HEX7 |
+
+HEX 寄存器按 byte 拆分. 例如 `HEX_LOW` 中:
+
+- `wdata[6:0]` 写入 `hex0`.
+- `wdata[14:8]` 写入 `hex1`.
+- `wdata[22:16]` 写入 `hex2`.
+- `wdata[30:24]` 写入 `hex3`.
+
+每个 HEX 端口只有 7 bit 段选, 因此每个 byte 的 bit 7 暂时保留. 当前段选默认按低电平点亮理解, reset 后输出 `7'h7f`.
+
 ### `rv32i_soc`
 
-`rv32i_soc` 是最小系统顶层.
+`rv32i_soc` 是通用 SoC 顶层, 不直接绑定某个开发板的管脚名.
 
 内部实例化:
 
 - `rv32i_core`
 - `simple_rom`
+- `simple_bus`
 - `simple_ram`
+- `gpio_mmio`
 
-连接关系:
+对外接口:
 
-- `core.imem_addr -> rom.addr`
-- `rom.rdata -> core.imem_rdata`
-- `core.dmem_req -> ram.req`
-- `core.dmem_we -> ram.we`
-- `core.dmem_be -> ram.be`
-- `core.dmem_addr -> ram.addr`
-- `core.dmem_wdata -> ram.wdata`
-- `ram.rdata -> core.dmem_rdata`
+- `clk`
+- `rst_n`
+- `sw[9:0]`
+- `key[3:0]`
+- `ledr[9:0]`
+- `hex0` 到 `hex7`
+
+如果只想快速上板, 可以直接把 `rv32i_soc` 当 Quartus top, 然后在 QSF 中把这些端口映射到真实管脚. 但长期建议保留一个板级 top.
+
+### `de1_soc_top`
+
+`de1_soc_top` 是 DE1-SoC 板级 wrapper.
+
+- 负责接收板级时钟, 按键, 开关, LED, HEX 端口.
+- 内部只实例化 `rv32i_soc`.
+- 当前用 `key[0]` 作为 `rst_n`.
+- `key[3:0]` 同时传给 SoC 的 GPIO KEY 输入.
+
+这种写法的优点是 SoC 逻辑保持通用, 板级端口名, reset 来源, 后续 PLL, reset sync, SDRAM 引脚都可以放在 wrapper 层.
+
+需要注意的是, 如果使用现有 QSF, 端口名字必须和 top module 一致. 例如 QSF 中写的是 `CLOCK_50`, 但 Verilog top 端口叫 `clk`, 那么 QSF 也要约束到 `clk`, 或者把 wrapper 端口改名为 `CLOCK_50`.
 
 ## 开发步骤
 
-建议按下面顺序推进:
+已经完成的阶段:
 
 1. 编写 `src/soc/simple_rom.v`.
 2. 编写 `src/soc/simple_ram.v`.
-3. 编写 `src/soc/rv32i_soc.v`.
-4. 编写 `rv32i_soc_vlg_tst`.
-5. 增加 `test-rv32i-soc` recipe.
-6. 只运行 `just test-rv32i-soc`, 验证最小 SoC 可以执行 ROM 中的小程序.
+3. 编写 `src/soc/simple_bus.v`.
+4. 编写 `src/soc/gpio_mmio.v`.
+5. 编写 `src/soc/rv32i_soc.v`.
+6. 编写 SoC 和 MMIO 相关 testbench.
+7. 编写 `src/de1_soc_top.v`.
 
-测试目标不需要重新覆盖所有 RV32I 指令. Core 级测试已经覆盖主数据通路, SoC 级测试重点确认模块边界和存储器连接正确.
+当前下一步建议:
+
+1. 给 `de1_soc_top` 增加很小的 wrapper 测试.
+2. 准备上板用 QSF, 先只映射时钟, KEY, SW, LEDR, HEX.
+3. 把 `simple_rom` 中的小程序换成 MMIO demo 程序, 让 LED 或 HEX 上板可见.
+4. 再考虑把 ROM 改为 `$readmemh`, 建立软件构建流程.
+
+## 测试边界
+
+SoC 级测试不需要重新覆盖所有 RV32I 指令. Core 级测试已经覆盖主数据通路, SoC 级测试重点确认模块边界:
+
+- ROM 能给 core 提供指令.
+- core 的数据访问能进入 bus.
+- RAM 读写能通过 bus 返回给 core.
+- GPIO MMIO 能被 load/store 访问.
+- 板级 wrapper 的 reset 和端口连接没有明显反接.
 
 ## SDRAM 接入规划
 
@@ -103,4 +191,4 @@ CPU 看到的是统一 memory bus, 不直接关心底层是 simple RAM, SDRAM, U
 3. 接入 SDRAM controller.
 4. 再考虑指令和数据都放在 SDRAM 中.
 
-这样当前 `simple_rom`, `simple_ram`, `rv32i_soc` 不会浪费. 它们既是本地仿真的简单模型, 也是后续总线接口设计的参考.
+这样当前 `simple_rom`, `simple_ram`, `simple_bus`, `gpio_mmio`, `rv32i_soc` 不会浪费. 它们既是本地仿真的简单模型, 也是后续总线接口设计的参考.

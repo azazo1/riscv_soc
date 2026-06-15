@@ -18,7 +18,7 @@ build-verilog top:
 run-verilog top:
     @just run-verilog-with {{ top }} {{ verilog_sources }}
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-rv32i-soc test-rv32i-soc-mmio
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-rv32i-soc test-rv32i-soc-mmio test-de1-soc-top
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -64,6 +64,9 @@ test-rv32i-soc:
 
 test-rv32i-soc-mmio:
     @just run-verilog rv32i_soc_mmio_vlg_tst
+
+test-de1-soc-top:
+    @just run-verilog de1_soc_top_vlg_tst
 
 clean:
     @rm -rf {{ build_dir }} obj_dir
