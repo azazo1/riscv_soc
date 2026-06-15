@@ -2,17 +2,27 @@
 
 module imm_gen_vlg_tst;
   reg  [31:0] instr;
+  reg  [2:0]  imm_sel;
   reg  [31:0] branch_imm;
   reg  [31:0] jump_imm;
 
+  wire [31:0] imm;
   wire [31:0] imm_i;
   wire [31:0] imm_s;
   wire [31:0] imm_b;
   wire [31:0] imm_u;
   wire [31:0] imm_j;
 
+  localparam IMM_I = 3'd0;
+  localparam IMM_S = 3'd1;
+  localparam IMM_B = 3'd2;
+  localparam IMM_U = 3'd3;
+  localparam IMM_J = 3'd4;
+
   imm_gen dut (
       .instr(instr),
+      .imm_sel(imm_sel),
+      .imm(imm),
       .imm_i(imm_i),
       .imm_s(imm_s),
       .imm_b(imm_b),
@@ -21,6 +31,8 @@ module imm_gen_vlg_tst;
   );
 
   initial begin
+    imm_sel = IMM_I;
+
     // I-type positive immediate: addi x1, x2, 0x123
     instr = {12'h123, 5'd2, 3'b000, 5'd1, 7'b0010011};
     #1;
@@ -126,6 +138,41 @@ module imm_gen_vlg_tst;
     #1;
     if (imm_j != 32'hffff_f800) begin
       $display("J-type negative failed: expected 0xfffff800, got %h", imm_j);
+      $fatal;
+    end
+
+    imm_sel = IMM_I;
+    #1;
+    if (imm != imm_i) begin
+      $display("selected I immediate failed: expected %h, got %h", imm_i, imm);
+      $fatal;
+    end
+
+    imm_sel = IMM_S;
+    #1;
+    if (imm != imm_s) begin
+      $display("selected S immediate failed: expected %h, got %h", imm_s, imm);
+      $fatal;
+    end
+
+    imm_sel = IMM_B;
+    #1;
+    if (imm != imm_b) begin
+      $display("selected B immediate failed: expected %h, got %h", imm_b, imm);
+      $fatal;
+    end
+
+    imm_sel = IMM_U;
+    #1;
+    if (imm != imm_u) begin
+      $display("selected U immediate failed: expected %h, got %h", imm_u, imm);
+      $fatal;
+    end
+
+    imm_sel = IMM_J;
+    #1;
+    if (imm != imm_j) begin
+      $display("selected J immediate failed: expected %h, got %h", imm_j, imm);
       $fatal;
     end
 
