@@ -26,12 +26,21 @@ module simple_bus (
     output wire [3:0] gpio_be,
     output wire [31:0] gpio_addr,
     output wire [31:0] gpio_wdata,
-    input wire [31:0] gpio_rdata
+    input wire [31:0] gpio_rdata,
+
+    // 转发请求到 uart
+    output wire uart_req,
+    output wire uart_we,
+    output wire [3:0] uart_be,
+    output wire [31:0] uart_addr,
+    output wire [31:0] uart_wdata,
+    input wire [31:0] uart_rdata
 );
 
   // 暂时定一个简单的 memory map
   // 0x0000_0000 - 0x00ff_ffff RAM // 但是暂时 RAM 容量只有 256 * 4 = 1024 字节
-  // 0x0100_0000 - 0x01ff_ffff MMIO-GPIO // 内部具体映射查看 gpio_mmio.v
+  // 0x0100_0000 - 0x0100_00ff MMIO-GPIO // 内部具体映射查看 gpio_mmio.v
+  // 0x0100_0100 - 0x0100_01ff MMIO-UART // 内部具体映射查看 uart_tx_mmio.v
 
   assign ram_req = req && (addr[31:24] == 8'b0);
   assign ram_we = we;
@@ -39,17 +48,25 @@ module simple_bus (
   assign ram_addr = addr;
   assign ram_wdata = wdata;
 
-  assign gpio_req = req && (addr[31:24] == 8'b1);
+  assign gpio_req = req && (addr[31:8] == 24'h010000);
   assign gpio_we = we;
   assign gpio_be = be;
   assign gpio_addr = addr;
   assign gpio_wdata = wdata;
+
+  assign uart_req = req && (addr[31:8] == 24'h010001);
+  assign uart_we = we;
+  assign uart_be = be;
+  assign uart_addr = addr;
+  assign uart_wdata = wdata;
 
   always @(*) begin
     if (ram_req) begin  // 不能只看 ram_hit (addr[31:24] == 8'b0) 而不看 req, 因为 req 为 0 的时候总线应该为空闲.
       rdata = ram_rdata;
     end else if (gpio_req) begin
       rdata = gpio_rdata;
+    end else if (uart_req) begin
+      rdata = uart_rdata;
     end else rdata = 32'b0;
   end
 

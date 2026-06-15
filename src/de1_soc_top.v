@@ -22,14 +22,21 @@ module de1_soc_top (
   wire [35:0] gpio0_oe;
   wire [35:0] gpio1_out;
   wire [35:0] gpio1_oe;
+  wire uart_tx_pin;
 
   genvar i;
   generate
-    for (i = 0; i < 36; i = i + 1) begin : gen_gpio
+    for (i = 0; i < 36; i = i + 1) begin : gen_gpio0
       assign gpio0[i] = gpio0_oe[i] ? gpio0_out[i] : 1'bz;
+    end
+
+    for (i = 1; i < 36; i = i + 1) begin : gen_gpio1
       assign gpio1[i] = gpio1_oe[i] ? gpio1_out[i] : 1'bz;
     end
   endgenerate
+
+  // GPIO_1[0] 暂时作为 UART TX 使用, 接到 USB-TTL 的 RX.
+  assign gpio1[0] = uart_tx_pin;
 
   rv32i_soc u_soc (
       .clk(clk),
@@ -48,7 +55,8 @@ module de1_soc_top (
       .gpio0_out(gpio0_out),
       .gpio0_oe(gpio0_oe),
       .gpio1_out(gpio1_out),
-      .gpio1_oe(gpio1_oe)
+      .gpio1_oe(gpio1_oe),
+      .uart_tx_pin(uart_tx_pin)
   );
 
 endmodule

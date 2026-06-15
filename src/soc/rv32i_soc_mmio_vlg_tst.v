@@ -28,6 +28,18 @@ module rv32i_soc_mmio_vlg_tst;
   wire [31:0] gpio_wdata;
   wire [31:0] gpio_rdata;
 
+  wire uart_req;
+  wire uart_we;
+  wire [3:0] uart_be;
+  wire [31:0] uart_addr;
+  wire [31:0] uart_wdata;
+  wire [31:0] uart_rdata;
+  wire uart_tx_ready;
+  wire uart_tx_busy;
+  wire uart_tx_valid;
+  wire [7:0] uart_tx_data;
+  reg uart_tx_seen;
+
   reg [9:0] sw;
   reg [3:0] key;
   wire [9:0] ledr;
@@ -82,7 +94,13 @@ module rv32i_soc_mmio_vlg_tst;
       .gpio_be(gpio_be),
       .gpio_addr(gpio_addr),
       .gpio_wdata(gpio_wdata),
-      .gpio_rdata(gpio_rdata)
+      .gpio_rdata(gpio_rdata),
+      .uart_req(uart_req),
+      .uart_we(uart_we),
+      .uart_be(uart_be),
+      .uart_addr(uart_addr),
+      .uart_wdata(uart_wdata),
+      .uart_rdata(uart_rdata)
   );
 
   simple_ram u_ram (
@@ -122,9 +140,35 @@ module rv32i_soc_mmio_vlg_tst;
       .gpio1_oe(gpio1_oe)
   );
 
+  assign uart_tx_ready = 1'b1;
+  assign uart_tx_busy = 1'b0;
+
+  uart_tx_mmio u_uart (
+      .clk(clk),
+      .rst_n(rst_n),
+      .req(uart_req),
+      .we(uart_we),
+      .be(uart_be),
+      .addr(uart_addr),
+      .wdata(uart_wdata),
+      .tx_ready(uart_tx_ready),
+      .tx_busy(uart_tx_busy),
+      .rdata(uart_rdata),
+      .tx_valid(uart_tx_valid),
+      .tx_data(uart_tx_data)
+  );
+
   initial begin
     clk = 1'b0;
     forever #5 clk = ~clk;
+  end
+
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      uart_tx_seen <= 1'b0;
+    end else if (uart_tx_valid) begin
+      uart_tx_seen <= 1'b1;
+    end
   end
 
   function [31:0] instr_i;
@@ -200,7 +244,10 @@ module rv32i_soc_mmio_vlg_tst;
       32'h0000_0070: imem_rdata = instr_s(12'd80, 5'd17, 5'd1, 3'b010); // sw x17, 80(x1), 写 GPIO1_OE_LOW
       32'h0000_0074: imem_rdata = instr_i(12'd6, 5'd0, 3'b000, 5'd18, OPCODE_OP_IMM); // addi x18, x0, 6, 准备 GPIO1_OE_HIGH
       32'h0000_0078: imem_rdata = instr_s(12'd84, 5'd18, 5'd1, 3'b010); // sw x18, 84(x1), 写 GPIO1_OE_HIGH
-      32'h0000_007c: imem_rdata = instr_b(13'd0, 5'd0, 5'd0, 3'b000); // beq x0, x0, 0, 原地循环停住
+      32'h0000_007c: imem_rdata = instr_i(12'h055, 5'd0, 3'b000, 5'd19, OPCODE_OP_IMM); // addi x19, x0, 0x55, 准备 UART 发送字节
+      32'h0000_0080: imem_rdata = instr_s(12'd256, 5'd19, 5'd1, 3'b010); // sw x19, 256(x1), 写 UART_TXDATA
+      32'h0000_0084: imem_rdata = instr_i(12'd260, 5'd1, 3'b010, 5'd20, OPCODE_LOAD); // lw x20, 260(x1), 读取 UART_STATUS
+      32'h0000_0088: imem_rdata = instr_b(13'd0, 5'd0, 5'd0, 3'b000); // beq x0, x0, 0, 原地循环停住
       default: imem_rdata = 32'h0000_0013;
     endcase
   end
@@ -223,6 +270,7 @@ module rv32i_soc_mmio_vlg_tst;
     key = 4'ha;
     gpio0_in = 36'hf_1234_5678;
     gpio1_in = 36'h5_dead_beef;
+    uart_tx_seen = 1'b0;
 
     #1;
     rst_n = 1'b0;
@@ -250,6 +298,9 @@ module rv32i_soc_mmio_vlg_tst;
     expect_value({28'b0, gpio1_out[35:32]}, 32'h0000_0005, 32'd16);
     expect_value(gpio1_oe[31:0], 32'h0000_00f0, 32'd17);
     expect_value({28'b0, gpio1_oe[35:32]}, 32'h0000_0006, 32'd18);
+    expect_value({24'b0, uart_tx_data}, 32'h0000_0055, 32'd19);
+    expect_value({31'b0, uart_tx_seen}, 32'h0000_0001, 32'd20);
+    expect_value(u_core.u_regfile.regs[20], 32'h0000_0001, 32'd21);
 
     $display("rv32i_soc_mmio test passed");
     $finish;

@@ -79,10 +79,11 @@ module de1_soc_top_vlg_tst;
     expect_value({16'b0, 1'b0, hex5, 1'b0, hex4}, 32'h0000_7f7f, 32'd9);
     expect_value(dut.gpio0_oe[31:0], 32'h0000_0000, 32'd10);
     expect_value(dut.gpio1_oe[31:0], 32'h0000_0000, 32'd11);
+    expect_value({31'b0, gpio1[0]}, 32'h0000_0001, 32'd12);
 
     sw[9] = 1'b1;  // SW9=1 时 PC 回到 RESET_PC.
     #10;
-    expect_value(dut.u_soc.u_core.u_pc_reg.pc, 32'h0000_0000, 32'd12);
+    expect_value(dut.u_soc.u_core.u_pc_reg.pc, 32'h0000_0000, 32'd13);
 
     $display("de1_soc_top test passed");
     $finish;

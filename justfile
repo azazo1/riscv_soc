@@ -34,7 +34,7 @@ firmware-board-demo:
     @# xxd -e -g 4 -c 4 把 little-endian 字节按 32-bit 指令 word 输出给 $readmemh.
     @xxd -e -g 4 -c 4 {{ build_dir }}/firmware/board_demo/board_demo.bin | awk '{ print $2 }' > firmware/board_demo/board_demo.hex
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-rv32i-soc test-rv32i-soc-mmio test-de1-soc-top
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-rv32i-soc test-rv32i-soc-mmio test-de1-soc-top
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -74,6 +74,12 @@ test-simple-bus:
 
 test-gpio-mmio:
     @just run-verilog gpio_mmio_vlg_tst
+
+test-uart-tx:
+    @just run-verilog uart_tx_vlg_tst
+
+test-uart-tx-mmio:
+    @just run-verilog uart_tx_mmio_vlg_tst
 
 test-rv32i-soc: firmware-board-demo
     @just run-verilog rv32i_soc_vlg_tst

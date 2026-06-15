@@ -2,7 +2,9 @@
 
 // 简单 soc 实现
 module rv32i_soc #(
-    parameter RESET_PC = 32'h0000_0000
+    parameter RESET_PC = 32'h0000_0000,
+    // UART_CLKS_PER_BIT = clk_hz / baud, example: 50 MHz / 115200 ~= 434.
+    parameter UART_CLKS_PER_BIT = 434
 ) (
     input wire clk,
     input wire rst_n,
@@ -24,7 +26,10 @@ module rv32i_soc #(
     output wire [35:0] gpio0_out,
     output wire [35:0] gpio0_oe,
     output wire [35:0] gpio1_out,
-    output wire [35:0] gpio1_oe
+    output wire [35:0] gpio1_oe,
+
+    // uart tx
+    output wire uart_tx_pin
 );
 
   wire dmem_req;
@@ -47,6 +52,17 @@ module rv32i_soc #(
   wire [31:0] gpio_addr;
   wire [31:0] gpio_wdata;
   wire [31:0] gpio_rdata;
+
+  wire uart_req;
+  wire uart_we;
+  wire [3:0] uart_be;
+  wire [31:0] uart_addr;
+  wire [31:0] uart_wdata;
+  wire [31:0] uart_rdata;
+  wire uart_tx_ready;
+  wire uart_tx_busy;
+  wire uart_tx_valid;
+  wire [7:0] uart_tx_data;
 
   wire [31:0] imem_addr;
   wire [31:0] imem_rdata;
@@ -90,6 +106,33 @@ module rv32i_soc #(
       .gpio1_oe(gpio1_oe)
   );
 
+  uart_tx_mmio u_uart_tx_mmio (
+      .clk(clk),
+      .rst_n(rst_n),
+      .req(uart_req),
+      .we(uart_we),
+      .be(uart_be),
+      .addr(uart_addr),
+      .wdata(uart_wdata),
+      .tx_ready(uart_tx_ready),
+      .tx_busy(uart_tx_busy),
+      .rdata(uart_rdata),
+      .tx_valid(uart_tx_valid),
+      .tx_data(uart_tx_data)
+  );
+
+  uart_tx #(
+      .CLKS_PER_BIT(UART_CLKS_PER_BIT)
+  ) u_uart_tx (
+      .clk(clk),
+      .rst_n(rst_n),
+      .tx_valid(uart_tx_valid),
+      .tx_data(uart_tx_data),
+      .tx_ready(uart_tx_ready),
+      .tx_busy(uart_tx_busy),
+      .uart_tx(uart_tx_pin)
+  );
+
   simple_rom u_rom (
       .addr (imem_addr),
       .rdata(imem_rdata)
@@ -116,7 +159,14 @@ module rv32i_soc #(
       .gpio_be(gpio_be),
       .gpio_addr(gpio_addr),
       .gpio_wdata(gpio_wdata),
-      .gpio_rdata(gpio_rdata)
+      .gpio_rdata(gpio_rdata),
+
+      .uart_req(uart_req),
+      .uart_we(uart_we),
+      .uart_be(uart_be),
+      .uart_addr(uart_addr),
+      .uart_wdata(uart_wdata),
+      .uart_rdata(uart_rdata)
   );
 
   rv32i_core #(

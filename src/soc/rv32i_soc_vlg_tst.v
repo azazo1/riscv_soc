@@ -18,6 +18,7 @@ module rv32i_soc_vlg_tst;
   wire [35:0] gpio0_oe;
   wire [35:0] gpio1_out;
   wire [35:0] gpio1_oe;
+  wire uart_tx_pin;
 
   rv32i_soc dut (
       .clk(clk),
@@ -36,7 +37,8 @@ module rv32i_soc_vlg_tst;
       .gpio0_out(gpio0_out),
       .gpio0_oe(gpio0_oe),
       .gpio1_out(gpio1_out),
-      .gpio1_oe(gpio1_oe)
+      .gpio1_oe(gpio1_oe),
+      .uart_tx_pin(uart_tx_pin)
   );
 
   initial begin
@@ -80,6 +82,7 @@ module rv32i_soc_vlg_tst;
     expect_value(gpio0_oe[31:0], 32'h0000_0000, 32'd8);
     expect_value(gpio1_out[31:0], 32'h0000_0000, 32'd9);
     expect_value(gpio1_oe[31:0], 32'h0000_0000, 32'd10);
+    expect_value({31'b0, uart_tx_pin}, 32'h0000_0001, 32'd11);
 
     $display("rv32i_soc test passed");
     $finish;
