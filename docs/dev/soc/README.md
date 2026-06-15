@@ -89,11 +89,12 @@ UART 实机测试固件是 `firmware/uart_demo/uart_demo.S`. 运行 `just firmwa
 - 读数据从被命中的设备返回给 core.
 - 当前 `clk` 预留给后续同步总线, 仲裁, SDRAM 或等待状态.
 
-当前 RAM 译码只看 `addr[31:24]`. GPIO 和 UART 使用更小的 MMIO 窗口.
+当前 RAM 从 `0x0000_8000` 开始译码. bus 会把传给 RAM 的地址减去 `0x0000_8000`, 所以 `simple_ram` 内部仍然使用从 0 开始的本地地址. GPIO 和 UART 使用更小的 MMIO 窗口.
 
 | 地址范围 | 目标 | 说明 |
 | --- | --- | --- |
-| `0x0000_0000` - `0x00ff_ffff` | RAM | 当前实际 RAM 只有 256 words |
+| `0x0000_0000` - `0x0000_7fff` | IMEM | 取指直连 `simple_rom`, 不经过 bus |
+| `0x0000_8000` - `0x00ff_ffff` | RAM | data bus 访问, 当前实际 RAM 只有 256 words |
 | `0x0100_0000` - `0x0100_00ff` | GPIO MMIO | LEDR, SW, KEY, HEX, GPIO_0, GPIO_1 |
 | `0x0100_0100` - `0x0100_01ff` | UART MMIO | UART TX |
 | 其他地址 | none | 读返回 0, 写无效果 |
@@ -265,7 +266,7 @@ CPU 看到的是统一 memory bus, 不直接关心底层是 simple RAM, SDRAM, U
 
 推荐 SDRAM 路线:
 
-1. 保留 ROM 取指, SDRAM 只做数据内存.
+1. 保留 ROM 取指直连, SDRAM 先放在 data RAM 窗口.
 2. 给 data memory 访问增加 `ready` 和 core stall.
 3. 接入 SDRAM controller.
 4. 再考虑指令和数据都放在 SDRAM 中.

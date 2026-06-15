@@ -18,7 +18,7 @@ module simple_ram (
   // 读取 组合逻辑 (异步)
   always @(*) begin
     if (req && !we) begin
-      rdata = ram_data[addr>>2];
+      rdata = ram_data[word_addr];
     end else begin
       rdata = 32'b0;
     end

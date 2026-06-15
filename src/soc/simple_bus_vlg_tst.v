@@ -30,6 +30,8 @@ module simple_bus_vlg_tst;
   wire [31:0] uart_wdata;
   reg [31:0] uart_rdata;
 
+  localparam RAM_BASE = 32'h0000_8000;
+
   simple_bus dut (
       .clk(clk),
       .req(req),
@@ -81,7 +83,7 @@ module simple_bus_vlg_tst;
 
       if (ram_req !== 1'b1 || gpio_req !== 1'b0 || uart_req !== 1'b0 ||
           ram_we !== test_we || ram_be !== test_be ||
-          ram_addr !== test_addr || ram_wdata !== test_wdata || rdata !== test_ram_rdata) begin
+          ram_addr !== (test_addr - RAM_BASE) || ram_wdata !== test_wdata || rdata !== test_ram_rdata) begin
         $display("check %0d ram hit failed", check_id);
         $display("ram_req=%b ram_we=%b ram_be=%b ram_addr=%h ram_wdata=%h rdata=%h",
                  ram_req, ram_we, ram_be, ram_addr, ram_wdata, rdata);
@@ -179,20 +181,22 @@ module simple_bus_vlg_tst;
 
     #1;
 
-    expect_ram_hit(1'b0, 4'b1111, 32'h0000_0000, 32'h0000_0000, 32'h1122_3344, 32'd1);
-    expect_ram_hit(1'b1, 4'b0101, 32'h0000_000c, 32'h5566_7788, 32'h99aa_bbcc, 32'd2);
-    expect_ram_hit(1'b0, 4'b1111, 32'h0000_0400, 32'h0000_0000, 32'h1234_abcd, 32'd3);
-    expect_ram_hit(1'b0, 4'b1111, 32'h00ff_fffc, 32'h0000_0000, 32'hdead_beef, 32'd4);
+    expect_ram_miss(32'h0000_0000, 32'd1);
+    expect_ram_miss(32'h0000_7ffc, 32'd2);
+    expect_ram_hit(1'b0, 4'b1111, 32'h0000_8000, 32'h0000_0000, 32'h1122_3344, 32'd3);
+    expect_ram_hit(1'b1, 4'b0101, 32'h0000_800c, 32'h5566_7788, 32'h99aa_bbcc, 32'd4);
+    expect_ram_hit(1'b0, 4'b1111, 32'h0000_8400, 32'h0000_0000, 32'h1234_abcd, 32'd5);
+    expect_ram_hit(1'b0, 4'b1111, 32'h00ff_fffc, 32'h0000_0000, 32'hdead_beef, 32'd6);
 
-    expect_gpio_hit(1'b0, 4'b1111, 32'h0100_0000, 32'h0000_0000, 32'h1357_2468, 32'd5);
-    expect_gpio_hit(1'b1, 4'b0011, 32'h0100_0010, 32'h0000_03ff, 32'h2468_1357, 32'd6);
+    expect_gpio_hit(1'b0, 4'b1111, 32'h0100_0000, 32'h0000_0000, 32'h1357_2468, 32'd7);
+    expect_gpio_hit(1'b1, 4'b0011, 32'h0100_0010, 32'h0000_03ff, 32'h2468_1357, 32'd8);
 
-    expect_gpio_hit(1'b0, 4'b1111, 32'h0100_00fc, 32'h0000_0000, 32'h0100_00fc, 32'd7);
-    expect_uart_hit(1'b1, 4'b1111, 32'h0100_0100, 32'h5566_7788, 32'h0000_0003, 32'd8);
-    expect_uart_hit(1'b0, 4'b1111, 32'h0100_0104, 32'h0000_0000, 32'h0000_0001, 32'd9);
+    expect_gpio_hit(1'b0, 4'b1111, 32'h0100_00fc, 32'h0000_0000, 32'h0100_00fc, 32'd9);
+    expect_uart_hit(1'b1, 4'b1111, 32'h0100_0100, 32'h5566_7788, 32'h0000_0003, 32'd10);
+    expect_uart_hit(1'b0, 4'b1111, 32'h0100_0104, 32'h0000_0000, 32'h0000_0001, 32'd11);
 
-    expect_ram_miss(32'h0100_0200, 32'd10);
-    expect_ram_miss(32'h0200_0000, 32'd11);
+    expect_ram_miss(32'h0100_0200, 32'd12);
+    expect_ram_miss(32'h0200_0000, 32'd13);
 
     req = 1'b0;
     we = 1'b1;

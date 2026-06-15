@@ -61,10 +61,10 @@ Rust 程序不能只依赖 ROM. 它至少需要 RAM 支持:
 | 区域 | 建议地址 | 作用 |
 | --- | --- | --- |
 | ROM | `0x0000_0000` | `.text`, `.rodata`, 启动代码 |
-| RAM | `0x0000_1000` 或独立 RAM 窗口 | `.data`, `.bss`, stack |
+| RAM | `0x0000_8000` | `.data`, `.bss`, stack |
 | MMIO | `0x0100_0000` | LED, HEX, UART 等外设 |
 
-如果 ROM 和 RAM 暂时共享 `0x0000_0000` 大范围, 需要在 SoC 层明确取指走 ROM, 数据访问走 RAM. 这是当前 Harvard 结构可以接受的简化.
+当前取指走 `simple_rom`, data memory 访问从 `0x0000_8000` 开始走 bus. 这样 IMEM 和 DMEM 的地址不会重叠.
 
 ## 启动代码
 
