@@ -18,7 +18,7 @@ build-verilog top:
 run-verilog top:
     @just run-verilog-with {{ top }} {{ verilog_sources }}
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-rv32i-soc
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-rv32i-soc
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -55,6 +55,9 @@ test-simple-ram:
 
 test-simple-bus:
     @just run-verilog simple_bus_vlg_tst
+
+test-gpio-mmio:
+    @just run-verilog gpio_mmio_vlg_tst
 
 test-rv32i-soc:
     @just run-verilog rv32i_soc_vlg_tst
