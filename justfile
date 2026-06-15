@@ -18,7 +18,7 @@ build-verilog top:
 run-verilog top:
     @just run-verilog-with {{ top }} {{ verilog_sources }}
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -49,6 +49,9 @@ test-rv32i-core:
 
 test-simple-rom:
     @just run-verilog simple_rom_vlg_tst
+
+test-simple-ram:
+    @just run-verilog simple_ram_vlg_tst
 
 clean:
     @rm -rf {{ build_dir }} obj_dir
