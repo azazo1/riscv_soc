@@ -89,7 +89,7 @@ just build-app-soft-float-test
 `zig cc` 用来把 C 编译成 RISC-V 目标文件:
 
 - `-target riscv32-freestanding`: 目标是 32 位 RISC-V 裸机环境, 没有操作系统.
-- `-mcpu=baseline_rv32-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf`: 从 baseline_rv32 关闭当前 CPU 未实现的扩展, 最终保留 RV32IM.
+- `-mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf`: 从 baseline_rv32 关闭当前 CPU 未实现的扩展, 最终只保留 RV32I.
 - `-mabi=ilp32`: 使用 RV32 常见 ABI, `int`, `long`, pointer 都是 32 bit.
 - `-ffreestanding`: 告诉编译器这是裸机程序.
 - `-fno-builtin`: 不把普通函数名替换成编译器内建函数.
@@ -98,7 +98,7 @@ just build-app-soft-float-test
 
 `riscv64-elf-as` 用来汇编 `startup.S`, 并用 `-march=rv32i -mabi=ilp32` 明确限制启动代码只使用 RV32I.
 
-`riscv64-elf-ld` 使用 `linker.ld` 链接, 把入口固定到 `_start`.
+`zig cc` 负责链接 C 目标文件和 `startup.o`, 并使用 `linker.ld` 把入口固定到 `_start`. 这样 Zig 会自动带上 compiler-rt 中的整数和浮点软件 helper, 例如 `__mulsi3`, `__divsi3`, `__addsf3`.
 
 `riscv64-elf-objcopy` 只提取 `.text` 和 `.rodata`, 因为 ROM 镜像只需要代码和只读常量.
 
@@ -112,7 +112,7 @@ just build-app-soft-float-test
 - 通过 SD 启动的 `init.bin` 支持 initialized `.data`.
 - 支持软浮点 helper, 但不支持硬件 F/D 浮点指令.
 - 暂时没有 `malloc`, `printf`, 中断和系统调用.
-- C 编译后必须检查不能出现 RVC, CSR, A/F/D 等当前 CPU 不支持的指令.
+- C 编译后必须检查不能出现 RVC, M, CSR, A/F/D 等当前 CPU 不支持的指令.
 
 可以用下面命令检查:
 
