@@ -38,6 +38,16 @@ module rv32i_soc #(
     output wire spi_mosi,
     output wire spi_cs_n,
 
+    // vga output.
+    output wire [7:0] vga_r,
+    output wire [7:0] vga_g,
+    output wire [7:0] vga_b,
+    output wire vga_hs,
+    output wire vga_vs,
+    output wire vga_blank_n,
+    output wire vga_sync_n,
+    output wire vga_clk,
+
     // de1-soc onboard sdram.
     output wire [12:0] sdram_addr,
     output wire [1:0] sdram_ba,
@@ -104,6 +114,17 @@ module rv32i_soc #(
   wire [31:0] sdram_rdata;
   wire sdram_ready;
   wire [1:0] sdram_dqm;
+  wire vga_sdram_req;
+  wire [31:0] vga_sdram_addr;
+  wire [31:0] vga_sdram_rdata;
+  wire vga_sdram_ready;
+  wire mem_sdram_req;
+  wire mem_sdram_we;
+  wire [3:0] mem_sdram_be;
+  wire [31:0] mem_sdram_addr;
+  wire [31:0] mem_sdram_wdata;
+  wire [31:0] mem_sdram_rdata;
+  wire mem_sdram_ready;
 
   wire [31:0] imem_addr;
   wire [31:0] imem_rdata;
@@ -209,16 +230,56 @@ module rv32i_soc #(
   assign sdram_ldqm = sdram_dqm[0];
   assign sdram_udqm = sdram_dqm[1];
 
+  vga_sdram_fb u_vga_sdram_fb (
+      .clk(clk),
+      .rst_n(rst_n),
+      .vga_r(vga_r),
+      .vga_g(vga_g),
+      .vga_b(vga_b),
+      .vga_hs(vga_hs),
+      .vga_vs(vga_vs),
+      .vga_blank_n(vga_blank_n),
+      .vga_sync_n(vga_sync_n),
+      .vga_clk(vga_clk),
+      .sdram_req(vga_sdram_req),
+      .sdram_addr(vga_sdram_addr),
+      .sdram_rdata(vga_sdram_rdata),
+      .sdram_ready(vga_sdram_ready)
+  );
+
+  sdram_arbiter u_sdram_arbiter (
+      .clk(clk),
+      .rst_n(rst_n),
+      .cpu_req(sdram_req),
+      .cpu_we(sdram_we),
+      .cpu_be(sdram_be),
+      .cpu_addr(sdram_bus_addr),
+      .cpu_wdata(sdram_wdata),
+      .cpu_rdata(sdram_rdata),
+      .cpu_ready(sdram_ready),
+      .vga_req(vga_sdram_req),
+      .vga_addr(vga_sdram_addr),
+      .vga_rdata(vga_sdram_rdata),
+      .vga_ready(vga_sdram_ready),
+      .mem_req(mem_sdram_req),
+      .mem_we(mem_sdram_we),
+      .mem_be(mem_sdram_be),
+      .mem_addr(mem_sdram_addr),
+      .mem_wdata(mem_sdram_wdata),
+      .mem_rdata(mem_sdram_rdata),
+      .mem_ready(mem_sdram_ready)
+  );
+
   sdram_simple_ctrl u_sdram_simple_ctrl (
       .clk(clk),
       .rst_n(rst_n),
-      .req(sdram_req),
-      .we(sdram_we),
-      .be(sdram_be),
-      .addr(sdram_bus_addr),
-      .wdata(sdram_wdata),
-      .rdata(sdram_rdata),
-      .ready(sdram_ready),
+      .req(mem_sdram_req),
+      .we(mem_sdram_we),
+      .be(mem_sdram_be),
+      .addr(mem_sdram_addr),
+      .wdata(mem_sdram_wdata),
+      .rdata(mem_sdram_rdata),
+      .ready(mem_sdram_ready),
       .init_done(),
       .sdram_clk(sdram_clk),
       .sdram_addr(sdram_addr),

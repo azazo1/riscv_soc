@@ -3,6 +3,7 @@
 // 最小 VGA 图案模块, 用彩条验证时序和引脚.
 module vga_pattern (
     input wire clk,
+    input wire clk_en,
     input wire rst_n,
 
     output wire [7:0] vga_r,
@@ -21,6 +22,7 @@ module vga_pattern (
 
   vga_timing u_vga_timing (
       .clk(clk),
+      .clk_en(clk_en),
       .rst_n(rst_n),
       .x(x),
       .y(y),

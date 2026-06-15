@@ -3,6 +3,7 @@
 // VGA 640x480@60Hz 时序发生器.
 module vga_timing (
     input wire clk,
+    input wire clk_en,
     input wire rst_n,
 
     output reg [9:0] x,
@@ -38,14 +39,14 @@ module vga_timing (
     if (!rst_n) begin
       x <= 10'd0;
       y <= 10'd0;
-    end else if (h_last) begin
+    end else if (clk_en && h_last) begin
       x <= 10'd0;
       if (v_last) begin
         y <= 10'd0;
       end else begin
         y <= y + 10'd1;
       end
-    end else begin
+    end else if (clk_en) begin
       x <= x + 10'd1;
     end
   end

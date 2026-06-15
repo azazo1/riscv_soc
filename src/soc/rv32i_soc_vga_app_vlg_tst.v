@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module rv32i_soc_c_rom_vlg_tst;
+module rv32i_soc_vga_app_vlg_tst;
   reg clk;
   reg rst_n;
   reg [9:0] sw;
@@ -42,11 +42,12 @@ module rv32i_soc_c_rom_vlg_tst;
   wire sdram_udqm;
   wire sdram_we_n;
 
-  localparam TEST_CLKS_PER_BIT = 4;
+  reg [31:0] app_image[0:2047];
 
   rv32i_soc #(
-      .ROM_FILE("firmware/c_demo/c_demo.hex"),
-      .UART_CLKS_PER_BIT(TEST_CLKS_PER_BIT)
+      .RESET_PC(32'h0000_8000),
+      .ROM_FILE("firmware/test/simple_rom.hex"),
+      .UART_CLKS_PER_BIT(4)
   ) dut (
       .clk(clk),
       .rst_n(rst_n),
@@ -91,7 +92,10 @@ module rv32i_soc_c_rom_vlg_tst;
       .sdram_we_n(sdram_we_n)
   );
 
-  sdram_model u_sdram_model (
+  sdram_model #(
+      .MEM_WORDS(65536),
+      .MEM_ADDR_BITS(16)
+  ) u_sdram_model (
       .clk(sdram_clk),
       .sdram_addr(sdram_addr),
       .sdram_ba(sdram_ba),
@@ -121,66 +125,49 @@ module rv32i_soc_c_rom_vlg_tst;
     end
   endtask
 
-  task expect_uart_byte;
-    input [7:0] expected;
-    input [31:0] check_id;
-    integer bit_index;
-    reg [7:0] actual;
-    begin
-      actual = 8'b0;
-
-      while (uart_tx_pin !== 1'b0) begin
-        @(posedge clk);
-      end
-
-      repeat (TEST_CLKS_PER_BIT) @(posedge clk);
-      for (bit_index = 0; bit_index < 8; bit_index = bit_index + 1) begin
-        actual[bit_index] = uart_tx_pin;
-        repeat (TEST_CLKS_PER_BIT) @(posedge clk);
-      end
-
-      if (actual !== expected) begin
-        $display("check %0d failed: expected byte %h, got %h", check_id, expected, actual);
-        $fatal;
-      end
-
-      if (uart_tx_pin !== 1'b1) begin
-        $display("check %0d failed: stop bit is not high", check_id);
-        $fatal;
-      end
-
-      repeat (TEST_CLKS_PER_BIT) @(posedge clk);
-    end
-  endtask
-
   initial begin
+    integer i;
+    integer wait_count;
+    reg seen_vga_read;
+
     rst_n = 1'b1;
     sw = 10'h000;
     key = 4'b1111;
     gpio0_in = 36'h0;
     gpio1_in = 36'h0;
+    seen_vga_read = 1'b0;
+
+    for (i = 0; i < 2048; i = i + 1) begin
+      app_image[i] = 32'h0000_0013;
+    end
+    $readmemh("build/tests/vga_app/vga_test.hex", app_image);
+
+    for (i = 0; i < 2048; i = i + 1) begin
+      dut.u_ram.ram_data[i] = app_image[i];
+    end
 
     #1;
     rst_n = 1'b0;
     repeat (2) @(posedge clk);
     rst_n = 1'b1;
 
-    expect_uart_byte(8'h43, 32'd1);
-    expect_uart_byte(8'h20, 32'd2);
-    expect_uart_byte(8'h64, 32'd3);
-    expect_uart_byte(8'h65, 32'd4);
-    expect_uart_byte(8'h6d, 32'd5);
-    expect_uart_byte(8'h6f, 32'd6);
-    expect_uart_byte(8'h0a, 32'd7);
-    expect_value({22'b0, ledr}, 32'h0000_0001, 32'd8);
+    wait_count = 0;
+    while ((u_sdram_model.mem[0] !== 16'h0100 || u_sdram_model.mem[1] !== 16'h0302) &&
+           wait_count < 120000) begin
+      wait_count = wait_count + 1;
+      if (dut.vga_sdram_req) begin
+        seen_vga_read = 1'b1;
+      end
+      @(posedge clk);
+    end
+    #1;
 
-    key = 4'b1110;
-    expect_uart_byte(8'h4b, 32'd9);
-    expect_uart_byte(8'h65, 32'd10);
-    expect_uart_byte(8'h0a, 32'd11);
-    expect_value({22'b0, ledr}, 32'h0000_0003, 32'd12);
+    expect_value({16'b0, u_sdram_model.mem[0]}, 32'h0000_0100, 32'd1);
+    expect_value({16'b0, u_sdram_model.mem[1]}, 32'h0000_0302, 32'd2);
+    expect_value({31'b0, seen_vga_read}, 32'h0000_0001, 32'd3);
 
-    $display("rv32i_soc_c_rom test passed");
+    $display("rv32i_soc_vga_app test passed");
     $finish;
   end
+
 endmodule

@@ -94,6 +94,20 @@ build-app-sdram-test-image: build-app-sdram-test
     @mkdir -p {{ build_dir }}/tests/sdram_app
     @just bin-to-rom-hex {{ build_dir }}/apps/sdram_test/sdram_test.bin {{ build_dir }}/tests/sdram_app/sdram_test.hex
 
+build-app-vga-test:
+    @mkdir -p {{ build_dir }}/apps/vga_test
+    @# vga_test.bin 按 0x0000_8000 链接, 上板时可手动改名为 INIT.BIN.
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/apps/vga_test/main.o apps/vga_test/main.c
+    riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/apps/vga_test/startup.o firmware/c_demo/startup.S
+    @# 用 zig cc 链接, 让 compiler-rt 在需要时提供整数 helper.
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,apps/linker.ld -Wl,--gc-sections -o {{ build_dir }}/apps/vga_test/vga_test.elf {{ build_dir }}/apps/vga_test/startup.o {{ build_dir }}/apps/vga_test/main.o
+    riscv64-elf-objcopy -O binary -j .text -j .rodata -j .data {{ build_dir }}/apps/vga_test/vga_test.elf {{ build_dir }}/apps/vga_test/vga_test.bin
+    @riscv64-elf-size {{ build_dir }}/apps/vga_test/vga_test.elf
+
+build-app-vga-test-image: build-app-vga-test
+    @mkdir -p {{ build_dir }}/tests/vga_app
+    @just bin-to-rom-hex {{ build_dir }}/apps/vga_test/vga_test.bin {{ build_dir }}/tests/vga_app/vga_test.hex
+
 build-app-init-data-test:
     @mkdir -p {{ build_dir }}/tests/init_data_test
     zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/tests/init_data_test/main.o apps/init_data_test/main.c
@@ -119,7 +133,7 @@ bin-to-rom-hex input output:
     @# xxd -e -g 4 -c 4 把 little-endian 字节按 32-bit word 输出给 $readmemh.
     @xxd -e -g 4 -c 4 {{ input }} | awk '{ print $2 }' > {{ output }}
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-sdram-simple-ctrl test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-ram-exec test-rv32i-soc-init-data test-rv32i-soc-soft-float test-rv32i-soc-sdram-app test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-sdram-simple-ctrl test-vga-sdram-fb test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-ram-exec test-rv32i-soc-init-data test-rv32i-soc-soft-float test-rv32i-soc-sdram-app test-rv32i-soc-vga-app test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -172,6 +186,9 @@ test-spi-master-mmio:
 test-sdram-simple-ctrl:
     @just run-verilog sdram_simple_ctrl_vlg_tst
 
+test-vga-sdram-fb:
+    @just run-verilog-with vga_sdram_fb_vlg_tst src/soc/vga/vga_timing.v src/soc/vga/vga_sdram_fb.v src/soc/vga/vga_sdram_fb_vlg_tst.v
+
 test-rv32i-soc: firmware-board-demo
     @just run-verilog rv32i_soc_vlg_tst
 
@@ -189,6 +206,9 @@ test-rv32i-soc-soft-float: build-app-soft-float-test
 
 test-rv32i-soc-sdram-app: build-app-sdram-test-image
     @just run-verilog rv32i_soc_sdram_app_vlg_tst
+
+test-rv32i-soc-vga-app: build-app-vga-test-image
+    @just run-verilog rv32i_soc_vga_app_vlg_tst
 
 test-rv32i-soc-uart-rom: firmware-uart-demo
     @just run-verilog rv32i_soc_uart_rom_vlg_tst

@@ -22,6 +22,14 @@ module rv32i_soc_init_data_vlg_tst;
   wire spi_sclk;
   wire spi_mosi;
   wire spi_cs_n;
+  wire [7:0] vga_r;
+  wire [7:0] vga_g;
+  wire [7:0] vga_b;
+  wire vga_hs;
+  wire vga_vs;
+  wire vga_blank_n;
+  wire vga_sync_n;
+  wire vga_clk;
   wire [12:0] sdram_addr;
   wire [1:0] sdram_ba;
   wire sdram_cas_n;
@@ -62,6 +70,14 @@ module rv32i_soc_init_data_vlg_tst;
       .spi_sclk(spi_sclk),
       .spi_mosi(spi_mosi),
       .spi_cs_n(spi_cs_n),
+      .vga_r(vga_r),
+      .vga_g(vga_g),
+      .vga_b(vga_b),
+      .vga_hs(vga_hs),
+      .vga_vs(vga_vs),
+      .vga_blank_n(vga_blank_n),
+      .vga_sync_n(vga_sync_n),
+      .vga_clk(vga_clk),
       .sdram_addr(sdram_addr),
       .sdram_ba(sdram_ba),
       .sdram_cas_n(sdram_cas_n),

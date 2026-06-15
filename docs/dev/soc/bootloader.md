@@ -9,6 +9,7 @@ bootloader 是 ROM 中的第一段程序. 它负责初始化外接 SPI SD 模块
 - `firmware/bootloader/linker.ld`: 指定 bootloader 的 ROM 和 RAM 布局.
 - `firmware/bootloader/bootloader.hex`: 给 `$readmemh` 使用的 ROM 初始化文件.
 - `apps/board_app/main.c`: 默认上板观察程序, 构建后可放到 SD 卡根目录作为 `INIT.BIN`.
+- `apps/vga_test/main.c`: VGA 可视测试程序, 通过 SDRAM framebuffer 输出彩条.
 - `apps/linker.ld`: 把 SD 卡里的应用程序链接到 `0x0000_8000`.
 
 ## 运行流程
@@ -157,6 +158,20 @@ init app
 如果只看到 `boot`, 通常说明 SD 初始化或 FAT32 读取阶段失败. 如果看到 `jump` 但后续程序没有输出, 重点检查 `INIT.BIN` 是否按 `0x0000_8000` 链接, 以及 `init_app` 的启动代码是否正确.
 
 当前默认上板 app 源码是 `apps/board_app/main.c`.
+
+如果要测试 VGA 和 SDRAM framebuffer, 生成:
+
+```shell
+just build-app-vga-test
+```
+
+输出文件:
+
+```text
+build/apps/vga_test/vga_test.bin
+```
+
+把这个文件复制到 FAT32 SD 卡根目录并命名为 `INIT.BIN`. 正常运行后 VGA 会显示移动彩条.
 
 - LEDR[0] 表示 app 已启动.
 - LEDR[9] 周期闪烁.

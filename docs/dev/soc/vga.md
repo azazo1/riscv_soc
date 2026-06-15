@@ -65,6 +65,51 @@
 
 framebuffer 方案可以后续再定. 如果先做小 framebuffer, 可以使用单独 dual-port RAM, CPU 一侧写入, VGA 一侧按扫描坐标读取.
 
+## SDRAM framebuffer
+
+当前已经加入第一版 SDRAM framebuffer 显示路径.
+
+| 项目 | 数值 |
+| --- | --- |
+| framebuffer 地址 | `0x0200_0000` |
+| 逻辑分辨率 | `160x120` |
+| 屏幕放大 | 每个逻辑像素放大成 `4x4` |
+| 像素格式 | 8 bit RGB332 |
+| 每个 word | 4 个像素, 低字节是靠左像素 |
+
+硬件中 VGA 看到的是 SDRAM 窗口内部偏移 `0x0000_0000`, 软件中对应地址是 `RV32I_VGA_FB_BASE`.
+
+第一版没有 line FIFO. VGA 会通过 `sdram_arbiter` 和 CPU 共享 SDRAM 控制器. 仲裁策略是 CPU 优先, VGA 空闲时读取 framebuffer. 这能用于上板可视测试, 但不是最终的视频架构. 后续如果要稳定显示动画或高分辨率图形, 应该增加 line FIFO 或 DMA 预取.
+
+## 可视测试程序
+
+源码:
+
+```text
+apps/vga_test/main.c
+```
+
+构建:
+
+```shell
+just build-app-vga-test
+```
+
+输出:
+
+```text
+build/apps/vga_test/vga_test.bin
+```
+
+上板时把 `vga_test.bin` 放到 FAT32 SD 卡根目录, 文件名改为 `INIT.BIN`. bootloader 会把程序加载到 `0x0000_8000` 后执行. 程序会向 SDRAM framebuffer 写入移动彩条, VGA 口显示放大后的 `160x120` 图像.
+
+仿真:
+
+```shell
+just test-vga-sdram-fb
+just test-rv32i-soc-vga-app
+```
+
 ## 测试
 
 当前模块级测试为 `vga_pattern_vlg_tst`.

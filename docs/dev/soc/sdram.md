@@ -15,6 +15,14 @@ volatile u32 *p = (volatile u32 *)RV32I_SDRAM_BASE;
 p[0] = 0x11223344u;
 ```
 
+当前 VGA framebuffer 使用 SDRAM 起始区域:
+
+| 地址范围 | 用途 |
+| --- | --- |
+| `0x0200_0000` 起 | VGA `160x120x8bit` framebuffer |
+
+framebuffer 大小是 `160 * 120 = 19200` bytes. 普通 SDRAM 测试可以覆盖这块区域, 但 VGA 显示会同步读出这里的数据. 如果后续应用同时使用图形和其他大块数据, 需要在软件中避开 framebuffer 区域.
+
 ## 当前结构
 
 ```text

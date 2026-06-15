@@ -16,6 +16,7 @@ module vga_pattern_vlg_tst;
 
   vga_pattern dut (
       .clk(clk),
+      .clk_en(1'b1),
       .rst_n(rst_n),
       .vga_r(vga_r),
       .vga_g(vga_g),

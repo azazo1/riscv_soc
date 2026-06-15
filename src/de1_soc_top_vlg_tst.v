@@ -24,6 +24,14 @@ module de1_soc_top_vlg_tst;
   wire dram_ras_n;
   wire dram_udqm;
   wire dram_we_n;
+  wire [7:0] vga_r;
+  wire [7:0] vga_g;
+  wire [7:0] vga_b;
+  wire vga_hs;
+  wire vga_vs;
+  wire vga_blank_n;
+  wire vga_sync_n;
+  wire vga_clk;
   reg [35:0] gpio0_drive;
   reg [35:0] gpio1_drive;
   reg gpio0_drive_en;
@@ -57,7 +65,15 @@ module de1_soc_top_vlg_tst;
       .dram_ldqm(dram_ldqm),
       .dram_ras_n(dram_ras_n),
       .dram_udqm(dram_udqm),
-      .dram_we_n(dram_we_n)
+      .dram_we_n(dram_we_n),
+      .vga_r(vga_r),
+      .vga_g(vga_g),
+      .vga_b(vga_b),
+      .vga_hs(vga_hs),
+      .vga_vs(vga_vs),
+      .vga_blank_n(vga_blank_n),
+      .vga_sync_n(vga_sync_n),
+      .vga_clk(vga_clk)
   );
 
   initial begin

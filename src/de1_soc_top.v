@@ -30,7 +30,16 @@ module de1_soc_top #(
     output wire dram_ldqm,
     output wire dram_ras_n,
     output wire dram_udqm,
-    output wire dram_we_n
+    output wire dram_we_n,
+
+    output wire [7:0] vga_r,
+    output wire [7:0] vga_g,
+    output wire [7:0] vga_b,
+    output wire vga_hs,
+    output wire vga_vs,
+    output wire vga_blank_n,
+    output wire vga_sync_n,
+    output wire vga_clk
 );
 
   wire [35:0] gpio0_out;
@@ -88,6 +97,14 @@ module de1_soc_top #(
       .spi_sclk(spi_sclk),
       .spi_mosi(spi_mosi),
       .spi_cs_n(spi_cs_n),
+      .vga_r(vga_r),
+      .vga_g(vga_g),
+      .vga_b(vga_b),
+      .vga_hs(vga_hs),
+      .vga_vs(vga_vs),
+      .vga_blank_n(vga_blank_n),
+      .vga_sync_n(vga_sync_n),
+      .vga_clk(vga_clk),
       .sdram_addr(dram_addr),
       .sdram_ba(dram_ba),
       .sdram_cas_n(dram_cas_n),
