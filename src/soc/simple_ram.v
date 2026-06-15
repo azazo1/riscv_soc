@@ -25,9 +25,9 @@ module simple_ram (
   end
 
   // 写入 时序逻辑 (同步)
-  integer i;
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
+      integer i;
       for (i = 0; i < 256; i = i + 1) begin  // 清空 ram
         ram_data[i] <= 0;
       end
