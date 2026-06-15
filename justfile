@@ -1,7 +1,5 @@
 build_dir := "build"
 verilog_sources := `find src -type f -name '*.v' -print | sort | tr '\n' ' '`
-board_demo_rom_words := "256"
-board_demo_rom_fill := "00000013"
 
 default:
     @just --list
@@ -35,8 +33,6 @@ firmware-board-demo:
     riscv64-elf-objcopy -O binary -j .text {{ build_dir }}/firmware/board_demo/board_demo.elf {{ build_dir }}/firmware/board_demo/board_demo.bin
     @# xxd -e -g 4 -c 4 把 little-endian 字节按 32-bit 指令 word 输出给 $readmemh.
     @xxd -e -g 4 -c 4 {{ build_dir }}/firmware/board_demo/board_demo.bin | awk '{ print $2 }' > firmware/board_demo/board_demo.hex
-    @# MIF 给 Quartus ROM/IP 或 memory update 流程使用, simple_rom 的 $readmemh 仍然读取 hex.
-    @awk -v depth={{ board_demo_rom_words }} -v fill={{ board_demo_rom_fill }} 'BEGIN { print "WIDTH=32;"; print "DEPTH=" depth ";"; print ""; print "ADDRESS_RADIX=HEX;"; print "DATA_RADIX=HEX;"; print ""; print "CONTENT BEGIN" } /^[[:space:]]*$/ { next } /^[[:space:]]*\/\// { next } { count++; if (count > depth) { printf "firmware image is larger than ROM depth: %d > %d\n", count, depth > "/dev/stderr"; bad=1; next } printf "  %02X : %s;\n", count - 1, toupper($1) } END { if (bad) exit 1; if (count < depth) printf "  [%02X..%02X] : %s;\n", count, depth - 1, fill; print "END;" }' firmware/board_demo/board_demo.hex > firmware/board_demo/board_demo.mif
 
 test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-ram test-simple-bus test-gpio-mmio test-rv32i-soc test-rv32i-soc-mmio test-de1-soc-top
 
