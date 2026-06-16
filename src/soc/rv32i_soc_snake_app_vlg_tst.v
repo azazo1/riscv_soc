@@ -44,6 +44,7 @@ module rv32i_soc_snake_app_vlg_tst;
 
   localparam APP_BASE = 32'h0201_0000;
   localparam APP_HALF_INDEX = 32768;
+  localparam WAIT_LIMIT = 2000000;
 
   reg [31:0] app_image[0:2047];
 
@@ -165,7 +166,7 @@ module rv32i_soc_snake_app_vlg_tst;
     while ((u_sdram_model.mem[0] !== MENU_WORD0 ||
             u_sdram_model.mem[select_bar_mem_index] !== SELECT_BAR_WORD ||
             ledr[2:0] !== 3'b010) &&
-           wait_count < 300000) begin
+           wait_count < WAIT_LIMIT) begin
       wait_count = wait_count + 1;
       @(posedge clk);
     end
