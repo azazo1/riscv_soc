@@ -359,6 +359,30 @@ static u8 is_init_bin_entry(const u8 *entry)
     return 1u;
 }
 
+static void copy_sector_to_app(u32 dst_addr, u32 copy_count)
+{
+    u32 i;
+    u32 word;
+    volatile u32 *dst;
+
+    dst = (volatile u32 *)dst_addr;
+
+    // 按 32-bit word 写入 SDRAM, 避免触发 byte write 的读改写路径.
+    for (i = 0u; i < copy_count; i += 4u) {
+        word = (u32)sector[i];
+        if (i + 1u < copy_count) {
+            word |= (u32)sector[i + 1u] << 8;
+        }
+        if (i + 2u < copy_count) {
+            word |= (u32)sector[i + 2u] << 16;
+        }
+        if (i + 3u < copy_count) {
+            word |= (u32)sector[i + 3u] << 24;
+        }
+        dst[i >> 2] = word;
+    }
+}
+
 static u8 find_init_bin(u32 *start_cluster, u32 *file_size)
 {
     u32 cluster;
@@ -406,9 +430,8 @@ static void load_file(u32 start_cluster, u32 file_size)
     u32 cluster;
     u32 remaining;
     u32 copy_count;
-    u32 i;
+    u32 dst_addr;
     u8 s;
-    u8 *dst;
 
     if (file_size == 0u || file_size > APP_MAX_SIZE) {
         fail("size", file_size);
@@ -416,22 +439,24 @@ static void load_file(u32 start_cluster, u32 file_size)
 
     cluster = start_cluster;
     remaining = file_size;
-    dst = (u8 *)APP_LOAD_ADDR;
+    dst_addr = APP_LOAD_ADDR;
+    rv32i_led_write(0x101u);
 
     while (cluster < 0x0ffffff8u && remaining != 0u) {
         for (s = 0u; s < sectors_per_cluster && remaining != 0u; s++) {
+            rv32i_led_write(0x101u);
             sd_read_sector(cluster_lba(cluster) + s, sector);
+            rv32i_led_write(0x102u);
 
             copy_count = remaining;
             if (copy_count > 512u) {
                 copy_count = 512u;
             }
 
-            for (i = 0u; i < copy_count; i++) {
-                dst[i] = sector[i];
-            }
+            copy_sector_to_app(dst_addr, copy_count);
+            rv32i_led_write(0x104u);
 
-            dst += copy_count;
+            dst_addr += copy_count;
             remaining -= copy_count;
         }
 
