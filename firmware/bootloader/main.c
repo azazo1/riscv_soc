@@ -42,6 +42,30 @@ static void put_hex8(u32 value)
     rv32i_uart_put_hex4(value);
 }
 
+static void put_hex32(u32 value)
+{
+    put_hex8(value >> 24);
+    put_hex8(value >> 16);
+    put_hex8(value >> 8);
+    put_hex8(value);
+}
+
+static void boot_ok(const char *text)
+{
+    rv32i_uart_puts("boot ok ");
+    rv32i_uart_puts(text);
+    rv32i_uart_putc('\n');
+}
+
+static void boot_ok_hex(const char *text, u32 value)
+{
+    rv32i_uart_puts("boot ok ");
+    rv32i_uart_puts(text);
+    rv32i_uart_putc(' ');
+    put_hex32(value);
+    rv32i_uart_putc('\n');
+}
+
 static void fail(const char *text, u32 code)
 {
     rv32i_uart_puts("boot fail ");
@@ -413,17 +437,22 @@ int main(void)
     rv32i_uart_puts("boot\n");
 
     sd_init();
+    boot_ok("sd");
 
     sd_read_sector(0u, sector);
     parse_partition();
+    boot_ok_hex("part", partition_lba);
     sd_read_sector(partition_lba, sector);
     parse_fat32();
+    boot_ok("fat");
 
     if (!find_init_bin(&start_cluster, &file_size)) {
         fail("init", 0u);
     }
+    boot_ok_hex("init", file_size);
 
     load_file(start_cluster, file_size);
+    boot_ok("load");
 
     rv32i_uart_puts("jump\n");
     rv32i_led_write(0x200u);
