@@ -24,14 +24,15 @@ module onchip_dual_port_ram #(
     output wire imem_ready
 );
 
-  localparam DATA_IDLE = 1'b0;
-  localparam DATA_RESP = 1'b1;
+  localparam DATA_IDLE = 2'd0;
+  localparam DATA_WAIT = 2'd1;
+  localparam DATA_RESP = 2'd2;
 
   localparam IMEM_IDLE = 2'd0;
   localparam IMEM_WAIT = 2'd1;
   localparam IMEM_RESP = 2'd2;
 
-  reg data_state;
+  reg [1:0] data_state;
   reg [1:0] imem_state;
   reg [RAM_WORD_ADDR_BITS-1:0] imem_word_addr_q;
 
@@ -102,8 +103,11 @@ module onchip_dual_port_ram #(
       case (data_state)
         DATA_IDLE: begin
           if (req) begin
-            data_state <= DATA_RESP;
+            data_state <= DATA_WAIT;
           end
+        end
+        DATA_WAIT: begin
+          data_state <= DATA_RESP;
         end
         DATA_RESP: begin
           data_state <= DATA_IDLE;

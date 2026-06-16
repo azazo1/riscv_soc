@@ -62,8 +62,14 @@ module onchip_dual_port_ram_vlg_tst;
 
       @(posedge clk);
       #1;
+      if (ready !== 1'b0) begin
+        fail("data port should wait for registered RAM output");
+      end
+
+      @(posedge clk);
+      #1;
       if (ready !== 1'b1) begin
-        fail("data port should respond after one clock");
+        fail("data port should respond after two clocks");
       end
       if (check_data && rdata !== expect_data) begin
         fail("data port read data mismatch");

@@ -53,6 +53,7 @@ module rv32i_soc_bootloader_stack_vlg_tst;
   reg [2:0] spi_bit_index;
   reg [7:0] spi_byte_index;
   reg stack_load_seen;
+  reg cmd8_seen;
 
   wire [7:0] spi_response_byte =
       spi_cs_n ? 8'hff :
@@ -141,10 +142,20 @@ module rv32i_soc_bootloader_stack_vlg_tst;
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       stack_load_seen <= 1'b0;
+      cmd8_seen <= 1'b0;
     end else begin
       if (dut.dmem_req && !dut.dmem_we &&
           dut.dmem_addr >= BOOT_STACK_LOW && dut.dmem_addr < BOOT_RAM_LIMIT) begin
         stack_load_seen <= 1'b1;
+      end
+
+      if (dut.u_core.u_pc_reg.pc == 32'h0000_0198) begin
+        cmd8_seen <= 1'b1;
+      end
+
+      if (stack_load_seen && !cmd8_seen && dut.u_core.u_pc_reg.pc == 32'h0000_0000) begin
+        $display("bootloader returned to reset pc after stack load");
+        $fatal;
       end
 
       if (dut.dmem_req && !dut.dmem_we &&
@@ -178,6 +189,7 @@ module rv32i_soc_bootloader_stack_vlg_tst;
     spi_bit_index = 3'b0;
     spi_byte_index = 8'b0;
     stack_load_seen = 1'b0;
+    cmd8_seen = 1'b0;
 
     #1;
     rst_n = 1'b0;
@@ -185,7 +197,7 @@ module rv32i_soc_bootloader_stack_vlg_tst;
     rst_n = 1'b1;
 
     wait_count = 0;
-    while (!stack_load_seen && wait_count < 200000) begin
+    while (!cmd8_seen && wait_count < 250000) begin
       wait_count = wait_count + 1;
       @(posedge clk);
     end
@@ -193,6 +205,10 @@ module rv32i_soc_bootloader_stack_vlg_tst;
 
     if (!stack_load_seen) begin
       $display("bootloader stack load was not observed");
+      $fatal;
+    end
+    if (!cmd8_seen) begin
+      $display("bootloader did not continue to cmd8 path");
       $fatal;
     end
 

@@ -43,7 +43,8 @@ module rv32i_soc_selfsale_rom_vlg_tst;
   wire sdram_we_n;
 
   rv32i_soc #(
-      .ROM_FILE("build/tests/selfsale/selfsale.hex")
+      .ROM_FILE("build/tests/selfsale/selfsale.hex"),
+      .UART_CLKS_PER_BIT(4)
   ) dut (
       .clk(clk),
       .rst_n(rst_n),
