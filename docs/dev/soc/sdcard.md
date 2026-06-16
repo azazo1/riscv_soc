@@ -44,6 +44,74 @@ bootloader 的任务是:
 - `INIT.BIN` 最大 1 MiB, 当前默认加载到 SDRAM `0x0201_0000`.
 - 不支持长文件名, 子目录, 写入, exFAT, FAT16.
 
+## SD 卡格式化和 INIT.BIN 准备流程
+
+当前 bootloader 支持两种 FAT32 起点:
+
+1. LBA 0 本身就是 FAT32 BPB.
+2. LBA 0 是 MBR, 第一个分区是 FAT32.
+
+上板调试推荐使用第二种方式, 也就是整张卡使用 MBR 分区表, 第一个分区使用 FAT32. 不要使用 GPT, exFAT, FAT16, Linux 分区或多个复杂分区布局.
+
+下面以 macOS 为例. 先确认 SD 卡设备号:
+
+```shell
+diskutil list
+```
+
+假设 SD 卡是 `/dev/disk4`, 可以用下面命令重新格式化整张卡:
+
+```shell
+diskutil eraseDisk FAT32 RISCV MBRFormat /dev/disk4
+```
+
+这个命令会清空整张 SD 卡. 真实执行前必须把 `/dev/disk4` 换成 `diskutil list` 中确认过的 SD 卡设备, 不要写成系统盘.
+
+格式化后再次检查:
+
+```shell
+diskutil list /dev/disk4
+```
+
+期望看到类似结果:
+
+```text
+FDisk_partition_scheme
+DOS_FAT_32 RISCV
+```
+
+如果这里看到 `GUID_partition_scheme`, `exFAT`, `Linux Filesystem` 或其他格式, bootloader 可能读不到正确 FAT32 BPB.
+
+然后构建一个准备放到 SD 卡运行的 app binary:
+
+```shell
+just build-app-board
+```
+
+输出文件是:
+
+```text
+build/apps/board_app/board_app.bin
+```
+
+把这个 binary 复制到 SD 卡 FAT32 分区根目录, 并命名为 `INIT.BIN`:
+
+```shell
+cp build/apps/board_app/board_app.bin /Volumes/RISCV/INIT.BIN
+sync
+diskutil eject /dev/disk4
+```
+
+`INIT.BIN` 必须是 `objcopy -O binary` 生成的 raw binary. 不要把 `.hex` 文件直接改名成 `INIT.BIN`.
+
+如果串口输出:
+
+```text
+boot fail bps 00
+```
+
+通常表示 bootloader 没有读到合法 FAT32 BPB, 也就是 bytes per sector 字段不是 512. 常见原因是 SD 卡还是 GPT 布局, 分区不是 FAT32, 文件系统是 exFAT/FAT16, 或者 bootloader 读到的不是正确分区起点.
+
 ## 和当前 ROM 的关系
 
 `simple_rom` 仍然保留. 它的作用是放一个很小的启动程序:
