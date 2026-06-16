@@ -64,14 +64,14 @@ static void boot_step(const char *text)
     rv32i_uart_putc('\n');
 }
 
-#define boot_ok_hex(text, value) \
-    do { \
-        rv32i_uart_puts("boot ok "); \
-        rv32i_uart_puts(text); \
-        rv32i_uart_putc(' '); \
-        put_hex32(value); \
-        rv32i_uart_putc('\n'); \
-    } while (0)
+static void boot_ok_hex(const char *text, u32 value)
+{
+    rv32i_uart_puts("boot ok ");
+    rv32i_uart_puts(text);
+    rv32i_uart_putc(' ');
+    put_hex32(value);
+    rv32i_uart_putc('\n');
+}
 
 static void fail(const char *text, u32 code)
 {
@@ -149,7 +149,7 @@ static void sd_init(void)
     if (r1 != 0x01u) {
         fail("cmd0", r1);
     }
-    boot_ok("cmd0");
+    boot_ok_hex("cmd0", r1);
 
     boot_step("cmd8");
     rv32i_spi_set_cs(0u);
