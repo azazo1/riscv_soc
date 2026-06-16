@@ -162,7 +162,7 @@ bin-to-rom-hex input output:
     @# xxd -e -g 4 -c 4 把 little-endian 字节按 32-bit word 输出给 $readmemh.
     @xxd -e -g 4 -c 4 {{ input }} | awk '{ print $2 }' > {{ output }}
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-dual-port-ram test-onchip-dual-port-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-sdram-simple-ctrl test-sdram-ctrl-wrapper test-vga-sdram-fb test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-ram-exec test-rv32i-soc-init-data test-rv32i-soc-soft-float test-rv32i-soc-sdram-app test-rv32i-soc-vga-app test-rv32i-soc-snake-app test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-rv32i-soc-selfsale-rom test-de1-soc-top
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-dual-port-ram test-onchip-dual-port-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-sdram-simple-ctrl test-sdram-ctrl-wrapper test-vga-sdram-fb test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-ram-exec test-rv32i-soc-bootloader-stack test-rv32i-soc-init-data test-rv32i-soc-soft-float test-rv32i-soc-sdram-app test-rv32i-soc-vga-app test-rv32i-soc-snake-app test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-rv32i-soc-selfsale-rom test-de1-soc-top
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -232,6 +232,9 @@ test-rv32i-soc-mmio:
 
 test-rv32i-soc-ram-exec:
     @just run-verilog rv32i_soc_ram_exec_vlg_tst
+
+test-rv32i-soc-bootloader-stack: firmware-bootloader
+    @just run-verilog rv32i_soc_bootloader_stack_vlg_tst
 
 test-rv32i-soc-init-data: build-app-init-data-test
     @just run-verilog rv32i_soc_init_data_vlg_tst
