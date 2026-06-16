@@ -70,7 +70,7 @@ GPIO0 同理.
 ## 编译
 
 quartus 打开项目直接进行编译, 可以得到烧录了 bootloader 固件代码的 soc, 加载 `.bin` 文件暂时未做到,
-如需使用 ROM 启动自动售货机的程序, 可以改动 `de1_soc_top.v` 文件:
+如需使用 ROM 启动自动售货机的程序, 可以改动 `src/de1_soc_top.v` 文件:
 
 ```v
 parameter ROM_FILE = "firmware/bootloader/bootloader.hex"
