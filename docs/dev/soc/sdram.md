@@ -51,7 +51,7 @@ rv32i_core
         -> simple_rom
         -> onchip_dual_port_ram
         -> sdram_arbiter
-            -> sdram_simple_ctrl
+            -> sdram_ctrl_wrapper
 
   dmem_* + dmem_ready
     -> simple_bus
@@ -60,13 +60,13 @@ rv32i_core
         -> uart_tx_mmio
         -> spi_master_mmio
         -> sdram_arbiter
-            -> sdram_simple_ctrl
+            -> sdram_ctrl_wrapper
              -> DRAM_* pins
 ```
 
-`simple_bus` 命中 SDRAM 窗口后, 会把地址减去 `0x0200_0000`, 再交给 `sdram_simple_ctrl`.
+`simple_bus` 命中 SDRAM 窗口后, 会把地址减去 `0x0200_0000`, 再交给 `sdram_ctrl_wrapper`.
 
-`sdram_simple_ctrl` 的 CPU 侧接口是一次请求一次完成:
+`sdram_ctrl_wrapper` 的 CPU 侧接口是一次请求一次完成:
 
 - `req`: CPU 发起访问.
 - `we`: 1 表示写, 0 表示读.
@@ -77,6 +77,32 @@ rv32i_core
 - `ready`: 当前访问完成.
 
 CPU 侧仍然是 32-bit 小端访问. 控制器内部会把一次 32-bit 访问拆成两个 16-bit SDRAM 访问.
+
+## 控制器后端
+
+`sdram_ctrl_wrapper` 保持 SoC 侧接口稳定, 内部可以选择两种实现:
+
+| 后端 | 选择方式 | 用途 |
+| --- | --- | --- |
+| `sdram_simple_ctrl` | 默认 | Verilator 仿真和结构阅读 |
+| `sdram_ref_adapter` + `Sdram_Control` | `USE_SDRAM_REF_CTRL=1` | Quartus 上板路径 |
+
+`sdram_simple_ctrl` 是本项目的教学版控制器. 它直接输出 SDRAM 命令, 并用 `~clk` 作为 SDRAM 时钟.
+
+`Sdram_Control` 来自 DE1-SoC SDRAM 参考工程. 它不是 Avalon SDRAM Controller IP, 而是由 Verilog 控制逻辑, FIFO IP 和 PLL IP 组成的软控制器. 它的主机侧是 16-bit FIFO 流式接口, 所以本项目用 `sdram_ref_adapter` 把它适配成当前 SoC 使用的 32-bit `req/ready` 接口.
+
+参考控制器没有 byte enable. 当 CPU 执行 `SB` 或 `SH` 这类部分字节写入时, `sdram_ref_adapter` 会先读出原来的 32-bit word, 合并需要更新的字节, 再写回两个 16-bit halfword.
+
+Quartus 工程通过 QSF 打开参考控制器路径:
+
+```tcl
+set_global_assignment -name VERILOG_MACRO "USE_SDRAM_REF_CTRL=1"
+set_global_assignment -name QIP_FILE src/soc/sdram/ref_ctrl/Sdram_RD_FIFO.qip
+set_global_assignment -name QIP_FILE src/soc/sdram/ref_ctrl/Sdram_WR_FIFO.qip
+set_global_assignment -name QIP_FILE src/soc/sdram/ref_ctrl/sdram_pll0.qip
+```
+
+`justfile` 自动收集 Verilog 源文件时排除 `src/soc/sdram/ref_ctrl/*`, 避免 Verilator 编译 Quartus PLL/FIFO IP. 本地仿真不定义 `USE_SDRAM_REF_CTRL`, 因此仍使用 `sdram_simple_ctrl`.
 
 ## CPU 等待
 
@@ -104,12 +130,15 @@ ROM 和 MMIO 访问在 `simple_bus` 中直接返回 `ready=1`. 片上 RAM 和 SD
 
 当前 `sdram_clk` 使用 `~clk`, 也就是让 SDRAM 在控制器输出命令半个周期后采样. 这比同沿采样更适合外部 SDRAM. 上板后仍然需要看 Quartus timing, 后续可以用 PLL 输出带相位偏移的 SDRAM clock.
 
+参考控制器路径使用 `sdram_pll0` 生成内部 SDRAM 控制时钟和外部 SDRAM 时钟. 该 PLL 当前来自参考工程, 输出 100 MHz 控制时钟, 外部 SDRAM 时钟带相位偏移.
+
 ## 测试
 
 运行:
 
 ```shell
 just test-sdram-simple-ctrl
+just test-sdram-ctrl-wrapper
 ```
 
 测试内容:

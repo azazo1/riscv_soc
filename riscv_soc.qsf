@@ -28,13 +28,25 @@ set_global_assignment -name VERILOG_FILE src/soc/simple_ram.v
 set_global_assignment -name VERILOG_FILE src/soc/simple_rom.v
 set_global_assignment -name VERILOG_FILE src/soc/spi_master_mmio.v
 set_global_assignment -name VERILOG_FILE src/soc/sdram/sdram_arbiter.v
+set_global_assignment -name VERILOG_FILE src/soc/sdram/sdram_ctrl_wrapper.v
+set_global_assignment -name VERILOG_FILE src/soc/sdram/sdram_ref_adapter.v
 set_global_assignment -name VERILOG_FILE src/soc/sdram/sdram_simple_ctrl.v
+set_global_assignment -name VERILOG_FILE src/soc/sdram/ref_ctrl/Sdram_Control.v
+set_global_assignment -name VERILOG_FILE src/soc/sdram/ref_ctrl/command.v
+set_global_assignment -name VERILOG_FILE src/soc/sdram/ref_ctrl/control_interface.v
+set_global_assignment -name VERILOG_FILE src/soc/sdram/ref_ctrl/sdr_data_path.v
+set_global_assignment -name SOURCE_FILE src/soc/sdram/ref_ctrl/Sdram_Params.h
+set_global_assignment -name SEARCH_PATH src/soc/sdram/ref_ctrl
 set_global_assignment -name VERILOG_FILE src/soc/uart_tx.v
 set_global_assignment -name VERILOG_FILE src/soc/uart_tx_mmio.v
 set_global_assignment -name VERILOG_FILE src/soc/vga/vga_sdram_fb.v
 set_global_assignment -name VERILOG_FILE src/soc/vga/vga_timing.v
 set_global_assignment -name VERILOG_MACRO "USE_ONCHIP_RAM_IP=1"
+set_global_assignment -name VERILOG_MACRO "USE_SDRAM_REF_CTRL=1"
 set_global_assignment -name QIP_FILE src/soc/onchip_ram/onchip_ram.qip
+set_global_assignment -name QIP_FILE src/soc/sdram/ref_ctrl/Sdram_RD_FIFO.qip
+set_global_assignment -name QIP_FILE src/soc/sdram/ref_ctrl/Sdram_WR_FIFO.qip
+set_global_assignment -name QIP_FILE src/soc/sdram/ref_ctrl/sdram_pll0.qip
 set_global_assignment -name SDC_FILE riscv_soc.sdc
 
 # Clock.

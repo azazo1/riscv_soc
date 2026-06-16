@@ -15,7 +15,7 @@
 - `uart_tx_mmio` 提供 UART TX 寄存器访问.
 - `uart_tx` 负责产生 UART TX 串口波形.
 - `spi_master_mmio` 提供外接 SPI SD 模块可用的基础 SPI 字节传输.
-- `sdram_simple_ctrl` 提供 DE1-SoC FPGA 侧 64 MiB SDRAM 访问.
+- `sdram_ctrl_wrapper` 提供 DE1-SoC FPGA 侧 64 MiB SDRAM 访问, 仿真默认使用简单控制器, Quartus 可切到参考控制器路径.
 - 暂时没有 UART RX, timer, interrupt.
 - data bus 已有 `ready` 等待信号, 当前主要用于 SDRAM.
 
@@ -28,7 +28,7 @@ rv32i_core
   imem_addr  -> imem mux
                    -> simple_rom
                    -> onchip_dual_port_ram imem port
-                   -> sdram_arbiter -> sdram_simple_ctrl
+                   -> sdram_arbiter -> sdram_ctrl_wrapper
 
   dmem_*     -> simple_bus
                    -> simple_rom (read-only)
@@ -36,7 +36,7 @@ rv32i_core
                    -> gpio_mmio
                    -> uart_tx_mmio -> uart_tx
                    -> spi_master_mmio -> external SPI SD module
-                   -> sdram_arbiter -> sdram_simple_ctrl -> onboard SDRAM
+                   -> sdram_arbiter -> sdram_ctrl_wrapper -> onboard SDRAM
 ```
 
 当前仍然是 Harvard 接口. 取指接口独立连接 ROM/RAM mux, 数据接口连接 bus. 这样可以先避免取指和访存之间的仲裁问题.

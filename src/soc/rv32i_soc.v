@@ -328,7 +328,7 @@ module rv32i_soc #(
       .mem_ready(mem_sdram_ready)
   );
 
-  sdram_simple_ctrl u_sdram_simple_ctrl (
+  sdram_ctrl_wrapper u_sdram_ctrl_wrapper (
       .clk(clk),
       .rst_n(rst_n),
       .req(mem_sdram_req),

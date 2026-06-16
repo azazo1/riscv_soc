@@ -1,5 +1,6 @@
 build_dir := "build"
-verilog_sources := `find src -type f -name '*.v' ! -path 'src/soc/onchip_ram/*' -print | sort | tr '\n' ' '`
+verilog_sources := `find src -type f -name '*.v' ! -path 'src/soc/onchip_ram/*' ! -path 'src/soc/sdram/ref_ctrl/*' -print | sort | tr '\n' ' '`
+selfsale_test_sources := "src/core/alu.v src/core/branch_unit.v src/core/decoder.v src/core/imm_gen.v src/core/load_store_unit.v src/core/next_pc_unit.v src/core/pc_reg.v src/core/regfile.v src/core/rv32i_core.v src/soc/gpio_mmio.v src/soc/onchip_dual_port_ram.v src/soc/rv32i_soc.v src/soc/simple_bus.v src/soc/simple_rom.v src/soc/spi_master_mmio.v src/soc/sdram/sdram_arbiter.v src/soc/sdram/sdram_ctrl_wrapper.v src/soc/sdram/sdram_simple_ctrl.v src/soc/sdram/sdram_model.v src/soc/uart_tx.v src/soc/uart_tx_mmio.v src/soc/vga/vga_sdram_fb.v src/soc/vga/vga_timing.v src/soc/rv32i_soc_selfsale_rom_vlg_tst.v"
 
 default:
     @just --list
@@ -18,7 +19,7 @@ build-verilog top:
 run-verilog top:
     @just run-verilog-with {{ top }} {{ verilog_sources }}
 
-firmware: firmware-board-demo firmware-uart-demo firmware-bootloader
+firmware: firmware-board-demo firmware-uart-demo firmware-bootloader firmware-selfsale
 
 firmware-board-demo:
     @mkdir -p {{ build_dir }}/firmware/board_demo
@@ -67,6 +68,26 @@ firmware-bootloader:
     riscv64-elf-objcopy -O binary -j .text -j .rodata {{ build_dir }}/firmware/bootloader/bootloader.elf {{ build_dir }}/firmware/bootloader/bootloader.bin
     @just bin-to-rom-hex {{ build_dir }}/firmware/bootloader/bootloader.bin firmware/bootloader/bootloader.hex
     @riscv64-elf-size {{ build_dir }}/firmware/bootloader/bootloader.elf
+
+firmware-selfsale:
+    @mkdir -p {{ build_dir }}/firmware/selfsale
+    @# selfsale 是直接放进 ROM 的演示固件, 不经过 bootloader, 也不访问 SDRAM.
+    ZIG_GLOBAL_CACHE_DIR={{ build_dir }}/zig-global-cache ZIG_LOCAL_CACHE_DIR={{ build_dir }}/zig-local-cache zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/firmware/selfsale/main.o firmware/selfsale/main.c
+    riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/firmware/selfsale/startup.o firmware/c_demo/startup.S
+    ZIG_GLOBAL_CACHE_DIR={{ build_dir }}/zig-global-cache ZIG_LOCAL_CACHE_DIR={{ build_dir }}/zig-local-cache zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,firmware/selfsale/linker.ld -Wl,--gc-sections -o {{ build_dir }}/firmware/selfsale/selfsale.elf {{ build_dir }}/firmware/selfsale/startup.o {{ build_dir }}/firmware/selfsale/main.o
+    riscv64-elf-objcopy -O binary -j .text -j .rodata {{ build_dir }}/firmware/selfsale/selfsale.elf {{ build_dir }}/firmware/selfsale/selfsale.bin
+    @just bin-to-rom-hex {{ build_dir }}/firmware/selfsale/selfsale.bin firmware/selfsale/selfsale.hex
+    @riscv64-elf-size {{ build_dir }}/firmware/selfsale/selfsale.elf
+
+build-selfsale-test-image:
+    @mkdir -p {{ build_dir }}/tests/selfsale
+    @# 仿真版只把按键轮询延时调短, 逻辑和上板固件相同.
+    ZIG_GLOBAL_CACHE_DIR={{ build_dir }}/zig-global-cache ZIG_LOCAL_CACHE_DIR={{ build_dir }}/zig-local-cache zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -DSELFSALE_DELAY_TICKS=8 -I firmware/include -c -o {{ build_dir }}/tests/selfsale/main.o firmware/selfsale/main.c
+    riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/tests/selfsale/startup.o firmware/c_demo/startup.S
+    ZIG_GLOBAL_CACHE_DIR={{ build_dir }}/zig-global-cache ZIG_LOCAL_CACHE_DIR={{ build_dir }}/zig-local-cache zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,firmware/selfsale/linker.ld -Wl,--gc-sections -o {{ build_dir }}/tests/selfsale/selfsale.elf {{ build_dir }}/tests/selfsale/startup.o {{ build_dir }}/tests/selfsale/main.o
+    riscv64-elf-objcopy -O binary -j .text -j .rodata {{ build_dir }}/tests/selfsale/selfsale.elf {{ build_dir }}/tests/selfsale/selfsale.bin
+    @just bin-to-rom-hex {{ build_dir }}/tests/selfsale/selfsale.bin {{ build_dir }}/tests/selfsale/selfsale.hex
+    @riscv64-elf-size {{ build_dir }}/tests/selfsale/selfsale.elf
 
 build-app-board:
     @mkdir -p {{ build_dir }}/apps/board_app
@@ -141,7 +162,7 @@ bin-to-rom-hex input output:
     @# xxd -e -g 4 -c 4 把 little-endian 字节按 32-bit word 输出给 $readmemh.
     @xxd -e -g 4 -c 4 {{ input }} | awk '{ print $2 }' > {{ output }}
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-dual-port-ram test-onchip-dual-port-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-sdram-simple-ctrl test-vga-sdram-fb test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-ram-exec test-rv32i-soc-init-data test-rv32i-soc-soft-float test-rv32i-soc-sdram-app test-rv32i-soc-vga-app test-rv32i-soc-snake-app test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-dual-port-ram test-onchip-dual-port-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-sdram-simple-ctrl test-sdram-ctrl-wrapper test-vga-sdram-fb test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-ram-exec test-rv32i-soc-init-data test-rv32i-soc-soft-float test-rv32i-soc-sdram-app test-rv32i-soc-vga-app test-rv32i-soc-snake-app test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-rv32i-soc-selfsale-rom test-de1-soc-top
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -197,6 +218,9 @@ test-spi-master-mmio:
 test-sdram-simple-ctrl:
     @just run-verilog sdram_simple_ctrl_vlg_tst
 
+test-sdram-ctrl-wrapper:
+    @just run-verilog sdram_ctrl_wrapper_vlg_tst
+
 test-vga-sdram-fb:
     @just run-verilog-with vga_sdram_fb_vlg_tst src/soc/vga/vga_timing.v src/soc/vga/vga_sdram_fb.v src/soc/vga/vga_sdram_fb_vlg_tst.v
 
@@ -229,6 +253,9 @@ test-rv32i-soc-uart-rom: firmware-uart-demo
 
 test-rv32i-soc-c-rom: firmware-c-demo
     @just run-verilog rv32i_soc_c_rom_vlg_tst
+
+test-rv32i-soc-selfsale-rom: build-selfsale-test-image
+    @just run-verilog-with rv32i_soc_selfsale_rom_vlg_tst {{ selfsale_test_sources }}
 
 test-de1-soc-top: firmware-board-demo
     @just run-verilog de1_soc_top_vlg_tst
