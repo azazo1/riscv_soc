@@ -57,6 +57,13 @@ static void boot_ok(const char *text)
     rv32i_uart_putc('\n');
 }
 
+static void boot_step(const char *text)
+{
+    rv32i_uart_puts("boot step ");
+    rv32i_uart_puts(text);
+    rv32i_uart_putc('\n');
+}
+
 static void boot_ok_hex(const char *text, u32 value)
 {
     rv32i_uart_puts("boot ok ");
@@ -130,16 +137,21 @@ static void sd_init(void)
     u8 r1;
     u8 ocr0;
 
+    boot_step("sd-div-slow");
     rv32i_spi_set_div(63u);
+    boot_step("sd-idle");
     spi_idle_clocks();
 
+    boot_step("cmd0");
     rv32i_spi_set_cs(0u);
     r1 = sd_cmd(SD_CMD0, 0u, 0x95u);
     sd_deselect();
     if (r1 != 0x01u) {
         fail("cmd0", r1);
     }
+    boot_ok_hex("cmd0", r1);
 
+    boot_step("cmd8");
     rv32i_spi_set_cs(0u);
     r1 = sd_cmd(SD_CMD8, 0x000001aau, 0x87u);
     if (r1 != 0x01u) {
@@ -157,7 +169,9 @@ static void sd_init(void)
         fail("cmd8-p", 8u);
     }
     sd_deselect();
+    boot_ok_hex("cmd8", r1);
 
+    boot_step("acmd41");
     for (i = 0; i < 20000u; i++) {
         r1 = sd_cmd_once(SD_CMD55, 0u, 0x01u);
         if (r1 > 0x01u) {
@@ -172,7 +186,9 @@ static void sd_init(void)
     if (r1 != 0u) {
         fail("acmd41", r1);
     }
+    boot_ok_hex("acmd41", i);
 
+    boot_step("cmd58");
     rv32i_spi_set_cs(0u);
     r1 = sd_cmd(SD_CMD58, 0u, 0x01u);
     if (r1 != 0u) {
@@ -186,6 +202,8 @@ static void sd_init(void)
     sd_deselect();
 
     sd_is_block_addr = (ocr0 & 0x40u) != 0u;
+    boot_ok_hex("ocr0", ocr0);
+    boot_step("sd-div-fast");
     rv32i_spi_set_div(5u);
 }
 
