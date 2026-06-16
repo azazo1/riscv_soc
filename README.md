@@ -66,3 +66,20 @@ GPIO0 同理.
 - `docs/`: 项目文档, `docs/dev/core/` 记录 CPU 设计, `docs/dev/soc/` 记录外设和 SoC 设计, `docs/dev/quartus/` 记录上板流程.
 - `riscv_soc.qpf`, `riscv_soc.qsf`, `riscv_soc.sdc`: Quartus 工程, 管脚约束和时序约束.
 - `justfile`: 常用命令入口, 用于运行仿真测试, 构建 ROM 固件, 构建可被 bootloader 加载的应用.
+
+## 编译
+
+quartus 打开项目直接进行编译, 可以得到烧录了 bootloader 固件代码的 soc, 加载 `.bin` 文件暂时未做到,
+如需使用 ROM 启动自动售货机的程序, 可以改动 `de1_soc_top.v` 文件:
+
+```v
+parameter ROM_FILE = "firmware/bootloader/bootloader.hex"
+```
+
+改成
+
+```v
+parameter ROM_FILE = "firmware/selfsale/selfsale.hex"
+```
+
+重新编译烧录即可.
