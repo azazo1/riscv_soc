@@ -2,6 +2,8 @@
 
 这个目录记录 CPU 外围封装的设计思路. 当前阶段已经从最小 ROM/RAM SoC 推进到带 data bus, GPIO MMIO, UART TX, SPI master 和 SDRAM 的小系统.
 
+存储布局总览见 `storage.md`. 它把 `simple_rom`, `onchip_dual_port_ram`, SDRAM, SD 卡 `INIT.BIN` 和 bootloader 启动链路放在同一个视角下说明.
+
 ## 当前边界
 
 当前 SoC 负责连接 CPU, 指令 ROM, 双口 RAM, 数据总线, GPIO MMIO, UART TX, SPI master, SDRAM.

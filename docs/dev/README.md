@@ -9,8 +9,9 @@
 3. `core/instr_format.md`: 看 R/I/S/B/U/J 六种指令格式, 先熟悉字段位置.
 4. `core/imm_gen.md`: 写立即数生成器之前, 先确认 I/S/B/U/J 五种 immediate 的位拼接和符号扩展.
 5. `soc/README.md`: CPU 顶层能运行后, 看最小 SoC 的 ROM, RAM 和后续 SDRAM 接入规划.
-6. `languages/c.md`: 准备运行 C 裸机程序前, 核对 ROM, RAM, 启动代码, 链接脚本和 UART 输出流程.
-7. `languages/rust.md`: 准备运行 Rust 裸机程序前, 核对 CPU 指令, RAM, 启动代码和调试输出要求.
+6. `soc/storage.md`: 接入 bootloader, SD 卡 app 或 SDRAM 前, 先核对完整存储布局和启动链路.
+7. `languages/c.md`: 准备运行 C 裸机程序前, 核对 ROM, RAM, 启动代码, 链接脚本和 UART 输出流程.
+8. `languages/rust.md`: 准备运行 Rust 裸机程序前, 核对 CPU 指令, RAM, 启动代码和调试输出要求.
 
 ## 当前开发节奏
 
