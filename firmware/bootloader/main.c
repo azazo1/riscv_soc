@@ -431,6 +431,7 @@ static void load_file(u32 start_cluster, u32 file_size)
     u32 remaining;
     u32 copy_count;
     u32 dst_addr;
+    u8 first_sector;
     u8 s;
 
     if (file_size == 0u || file_size > APP_MAX_SIZE) {
@@ -440,13 +441,21 @@ static void load_file(u32 start_cluster, u32 file_size)
     cluster = start_cluster;
     remaining = file_size;
     dst_addr = APP_LOAD_ADDR;
+    first_sector = 1u;
+    boot_step("load");
     rv32i_led_write(0x101u);
 
     while (cluster < 0x0ffffff8u && remaining != 0u) {
         for (s = 0u; s < sectors_per_cluster && remaining != 0u; s++) {
             rv32i_led_write(0x101u);
+            if (first_sector) {
+                boot_step("load-read");
+            }
             sd_read_sector(cluster_lba(cluster) + s, sector);
             rv32i_led_write(0x102u);
+            if (first_sector) {
+                boot_step("load-write");
+            }
 
             copy_count = remaining;
             if (copy_count > 512u) {
@@ -455,6 +464,10 @@ static void load_file(u32 start_cluster, u32 file_size)
 
             copy_sector_to_app(dst_addr, copy_count);
             rv32i_led_write(0x104u);
+            if (first_sector) {
+                boot_step("load-first");
+                first_sector = 0u;
+            }
 
             dst_addr += copy_count;
             remaining -= copy_count;
