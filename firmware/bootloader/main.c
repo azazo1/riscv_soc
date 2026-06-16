@@ -149,7 +149,7 @@ static void sd_init(void)
     if (r1 != 0x01u) {
         fail("cmd0", r1);
     }
-    boot_ok_hex("cmd0", r1);
+    boot_ok("cmd0");
 
     boot_step("cmd8");
     rv32i_spi_set_cs(0u);
