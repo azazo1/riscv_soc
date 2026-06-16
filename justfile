@@ -72,9 +72,9 @@ firmware-bootloader:
 firmware-selfsale:
     @mkdir -p {{ build_dir }}/firmware/selfsale
     @# selfsale 是直接放进 ROM 的演示固件, 不经过 bootloader, 也不访问 SDRAM.
-    ZIG_GLOBAL_CACHE_DIR={{ build_dir }}/zig-global-cache ZIG_LOCAL_CACHE_DIR={{ build_dir }}/zig-local-cache zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/firmware/selfsale/main.o firmware/selfsale/main.c
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -I firmware/include -c -o {{ build_dir }}/firmware/selfsale/main.o firmware/selfsale/main.c
     riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/firmware/selfsale/startup.o firmware/c_demo/startup.S
-    ZIG_GLOBAL_CACHE_DIR={{ build_dir }}/zig-global-cache ZIG_LOCAL_CACHE_DIR={{ build_dir }}/zig-local-cache zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,firmware/selfsale/linker.ld -Wl,--gc-sections -o {{ build_dir }}/firmware/selfsale/selfsale.elf {{ build_dir }}/firmware/selfsale/startup.o {{ build_dir }}/firmware/selfsale/main.o
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,firmware/selfsale/linker.ld -Wl,--gc-sections -o {{ build_dir }}/firmware/selfsale/selfsale.elf {{ build_dir }}/firmware/selfsale/startup.o {{ build_dir }}/firmware/selfsale/main.o
     riscv64-elf-objcopy -O binary -j .text -j .rodata {{ build_dir }}/firmware/selfsale/selfsale.elf {{ build_dir }}/firmware/selfsale/selfsale.bin
     @just bin-to-rom-hex {{ build_dir }}/firmware/selfsale/selfsale.bin firmware/selfsale/selfsale.hex
     @riscv64-elf-size {{ build_dir }}/firmware/selfsale/selfsale.elf
@@ -82,9 +82,9 @@ firmware-selfsale:
 build-selfsale-test-image:
     @mkdir -p {{ build_dir }}/tests/selfsale
     @# 仿真版只把按键轮询延时调短, 逻辑和上板固件相同.
-    ZIG_GLOBAL_CACHE_DIR={{ build_dir }}/zig-global-cache ZIG_LOCAL_CACHE_DIR={{ build_dir }}/zig-local-cache zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -DSELFSALE_DELAY_TICKS=8 -I firmware/include -c -o {{ build_dir }}/tests/selfsale/main.o firmware/selfsale/main.c
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -DSELFSALE_DELAY_TICKS=8 -I firmware/include -c -o {{ build_dir }}/tests/selfsale/main.o firmware/selfsale/main.c
     riscv64-elf-as -march=rv32i -mabi=ilp32 -o {{ build_dir }}/tests/selfsale/startup.o firmware/c_demo/startup.S
-    ZIG_GLOBAL_CACHE_DIR={{ build_dir }}/zig-global-cache ZIG_LOCAL_CACHE_DIR={{ build_dir }}/zig-local-cache zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,firmware/selfsale/linker.ld -Wl,--gc-sections -o {{ build_dir }}/tests/selfsale/selfsale.elf {{ build_dir }}/tests/selfsale/startup.o {{ build_dir }}/tests/selfsale/main.o
+    zig cc -target riscv32-freestanding -mcpu=baseline_rv32-m-a-f-d-c-zicsr-zmmul-zaamo-zalrsc-zca-zcd-zcf -mabi=ilp32 -Os -ffreestanding -fno-builtin -fno-pic -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-unwind-tables -Wl,-T,firmware/selfsale/linker.ld -Wl,--gc-sections -o {{ build_dir }}/tests/selfsale/selfsale.elf {{ build_dir }}/tests/selfsale/startup.o {{ build_dir }}/tests/selfsale/main.o
     riscv64-elf-objcopy -O binary -j .text -j .rodata {{ build_dir }}/tests/selfsale/selfsale.elf {{ build_dir }}/tests/selfsale/selfsale.bin
     @just bin-to-rom-hex {{ build_dir }}/tests/selfsale/selfsale.bin {{ build_dir }}/tests/selfsale/selfsale.hex
     @riscv64-elf-size {{ build_dir }}/tests/selfsale/selfsale.elf

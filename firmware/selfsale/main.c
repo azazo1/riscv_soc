@@ -88,13 +88,13 @@ static void write_hex_pair(u32 amount, u32 price, u32 status)
     split_decimal(amount, &amount_tens, &amount_ones);
     split_decimal(price, &price_tens, &price_ones);
 
-    /* HEX0/1 显示投入金额或找零, HEX2/3 显示商品价格。 */
+    /* HEX0/1 显示投入金额或找零, HEX2/3 显示商品价格. */
     hex_low = seg_digit(amount_ones);
     hex_low = hex_low | (seg_digit(amount_tens) << 8);
     hex_low = hex_low | (seg_digit(price_ones) << 16);
     hex_low = hex_low | (seg_digit(price_tens) << 24);
 
-    /* HEX4 显示订单状态, HEX5 固定显示 0。 */
+    /* HEX4 显示订单状态, HEX5 固定显示 0. */
     hex_high = seg_digit(status);
     hex_high = hex_high | (seg_digit(0u) << 8);
 
@@ -113,9 +113,9 @@ static void delay_once(void)
 
 static u32 selected_price(u32 selected)
 {
-    if (selected == 1u) return 9u;   /* A: 0.9 元, 单位是角。 */
-    if (selected == 2u) return 12u;  /* B: 1.2 元, 单位是角。 */
-    if (selected == 3u) return 23u;  /* C: 2.3 元, 单位是角。 */
+    if (selected == 1u) return 9u;   /* A: 0.9 元, 单位是角. */
+    if (selected == 2u) return 12u;  /* B: 1.2 元, 单位是角. */
+    if (selected == 3u) return 23u;  /* C: 2.3 元, 单位是角. */
     return 0u;
 }
 
@@ -127,6 +127,28 @@ static u32 selected_led(u32 selected)
     return 0x000u;
 }
 
+static void uart_put_select(u32 selected)
+{
+    if (selected == 1u) {
+        rv32i_uart_puts("select A\n");
+    } else if (selected == 2u) {
+        rv32i_uart_puts("select B\n");
+    } else if (selected == 3u) {
+        rv32i_uart_puts("select C\n");
+    }
+}
+
+static void uart_put_coin(u32 coin)
+{
+    if (coin == 1u) {
+        rv32i_uart_puts("coin 1\n");
+    } else if (coin == 5u) {
+        rv32i_uart_puts("coin 5\n");
+    } else if (coin == 10u) {
+        rv32i_uart_puts("coin 10\n");
+    }
+}
+
 int main(void)
 {
     u32 selected = 0u;
@@ -135,6 +157,10 @@ int main(void)
     u32 display_amount = 0u;
     u32 status = STATUS_IDLE;
     u32 last_key = KEY & 0x0fu;
+    u32 running = 0u;
+    u32 wait_sw0_reported = 0u;
+
+    rv32i_uart_puts("selfsale boot\n");
 
     while (1) {
         u32 sw = SW;
@@ -142,12 +168,18 @@ int main(void)
         u32 pressed;
 
         if ((sw & 1u) == 0u) {
+            if (wait_sw0_reported == 0u) {
+                wait_sw0_reported = 1u;
+                rv32i_uart_puts("wait sw0\n");
+            }
+
             selected = 0u;
             price = 0u;
             coin_total = 0u;
             display_amount = 0u;
             status = STATUS_IDLE;
             last_key = KEY & 0x0fu;
+            running = 0u;
 
             LEDR = 0u;
             write_hex_pair(0u, 0u, STATUS_IDLE);
@@ -155,30 +187,42 @@ int main(void)
             continue;
         }
 
+        if (running == 0u) {
+            running = 1u;
+            wait_sw0_reported = 0u;
+            rv32i_uart_puts("run\n");
+        }
+
         key = KEY & 0x0fu;
         pressed = last_key & (~key);
         last_key = key;
 
         if ((pressed & KEY_SELECT) != 0u) {
+            u32 selected_event = 0u;
+
             if (selected == 0u) {
                 selected = 1u;
                 status = STATUS_IDLE;
                 coin_total = 0u;
                 display_amount = 0u;
+                selected_event = selected;
             } else if (status == STATUS_COIN) {
                 selected = 0u;
                 status = STATUS_REFUND;
                 display_amount = coin_total;
                 coin_total = 0u;
+                rv32i_uart_puts("refund\n");
             } else {
                 selected = selected + 1u;
                 if (selected > 3u) selected = 1u;
                 status = STATUS_IDLE;
                 coin_total = 0u;
                 display_amount = 0u;
+                selected_event = selected;
             }
 
             price = selected_price(selected);
+            uart_put_select(selected_event);
         }
 
         if (selected != 0u) {
@@ -189,6 +233,7 @@ int main(void)
             if ((pressed & KEY_COIN_10) != 0u) coin = 10u;
 
             if (coin != 0u) {
+                uart_put_coin(coin);
                 coin_total = coin_total + coin;
 
                 if (coin_total >= price) {
@@ -197,6 +242,7 @@ int main(void)
                     selected = 0u;
                     price = 0u;
                     status = STATUS_DONE;
+                    rv32i_uart_puts("done\n");
                 } else {
                     display_amount = coin_total;
                     status = STATUS_COIN;
@@ -204,7 +250,7 @@ int main(void)
             }
         }
 
-        /* LEDR[0..2] 指示 A/B/C, LEDR[9] 表示程序正在工作。 */
+        /* LEDR[0..2] 指示 A/B/C, LEDR[9] 表示程序正在工作. */
         LEDR = selected_led(selected) | 0x200u;
         write_hex_pair(display_amount, price, status);
         delay_once();
