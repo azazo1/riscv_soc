@@ -25,6 +25,23 @@ framebuffer 大小是 `160 * 120 = 19200` bytes. 普通 SDRAM 测试可以覆盖
 
 当前 SD app 默认从 `0x0201_0000` 开始加载和执行. 这个地址避开 framebuffer 起始区域, 也给后续图形程序留出更清晰的地址边界.
 
+## 和片上 RAM 的关系
+
+当前 SoC 不再尝试把大程序区放进片上 RAM. 低地址 boot RAM 只保留 4 KiB:
+
+| 地址范围 | 大小 | 用途 |
+| --- | --- | --- |
+| `0x0000_f000` - `0x0000_ffff` | 4 KiB | bootloader `.bss`, sector buffer, stack |
+
+这个 boot RAM 由 `onchip_dual_port_ram` 适配 Quartus `onchip_ram` IP 实现. Quartus Fitter 报告里应能看到 `onchip_ram:u_onchip_ram|altsyncram` 使用 M10K block.
+
+普通应用从 SD 卡的 `INIT.BIN` 加载到 SDRAM, 默认入口地址是 `0x0201_0000`. 这样做的目的有两个:
+
+1. boot RAM 保持很小, 资源占用可控.
+2. app 可以使用更大的 `.text`, `.rodata`, `.data`, `.bss` 和 stack 空间.
+
+如果 Fitter 报告中 `M10K blocks` 为 0, 但寄存器或 LAB 数量异常升高, 通常说明某个片上存储器没有映射到 block RAM. 这时应先检查 RAM/ROM 实现方式, 不要直接继续增加片上数组容量.
+
 ## 当前结构
 
 ```text
@@ -32,13 +49,13 @@ rv32i_core
   imem_addr + imem_ready
     -> rv32i_soc imem mux
         -> simple_rom
-        -> simple_dual_port_ram
+        -> onchip_dual_port_ram
         -> sdram_arbiter
             -> sdram_simple_ctrl
 
   dmem_* + dmem_ready
     -> simple_bus
-        -> simple_dual_port_ram
+        -> onchip_dual_port_ram
         -> gpio_mmio
         -> uart_tx_mmio
         -> spi_master_mmio

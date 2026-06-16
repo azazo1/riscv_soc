@@ -10,7 +10,7 @@
 - 取指地址在 `0x0000_0000` 到 `0x0000_7fff` 时读取 `simple_rom`, 在 `0x0000_f000` 到 `0x0000_ffff` 时读取 boot RAM, 在 `0x0200_0000` 到 `0x05ff_ffff` 时读取 SDRAM.
 - 数据读写从 core 发出, 先进入 `simple_bus`.
 - `simple_bus` 按地址窗口选择 ROM 只读窗口, RAM, GPIO MMIO, UART TX MMIO, SPI MMIO 或 SDRAM.
-- `simple_dual_port_ram` 只保留 4 KiB boot RAM, 提供 data bus 访问口和 RAM 取指口.
+- `onchip_dual_port_ram` 只保留 4 KiB boot RAM, 提供 data bus 访问口和 RAM 取指口.
 - `gpio_mmio` 提供 LEDR, SW, KEY, HEX0..HEX5, GPIO_0, GPIO_1 的寄存器访问.
 - `uart_tx_mmio` 提供 UART TX 寄存器访问.
 - `uart_tx` 负责产生 UART TX 串口波形.
@@ -27,12 +27,12 @@
 rv32i_core
   imem_addr  -> imem mux
                    -> simple_rom
-                   -> simple_dual_port_ram imem port
+                   -> onchip_dual_port_ram imem port
                    -> sdram_arbiter -> sdram_simple_ctrl
 
   dmem_*     -> simple_bus
                    -> simple_rom (read-only)
-                   -> simple_dual_port_ram data port
+                   -> onchip_dual_port_ram data port
                    -> gpio_mmio
                    -> uart_tx_mmio -> uart_tx
                    -> spi_master_mmio -> external SPI SD module
@@ -92,19 +92,58 @@ SD 启动固件是 `firmware/bootloader/main.c`. 运行 `just firmware-bootloade
 
 写入时按 `be` 分字节更新 32 位 word. 这样 `SB`, `SH`, `SW` 都可以共用同一个 RAM 模块.
 
-### `simple_dual_port_ram`
+### `onchip_dual_port_ram`
 
-`rv32i_soc` 当前使用 `simple_dual_port_ram`.
+`rv32i_soc` 当前使用 `onchip_dual_port_ram`.
 
 - data 口给 `simple_bus` 使用, 支持同步读写, 通过 `ready` 表示访问完成.
 - imem 口给 CPU 从 RAM 取指使用, 只读, 通过 `imem_ready` 表示指令有效.
 - RAM 本地地址从 0 开始, SoC 地址 `0x0000_f000` 对应 RAM 本地 word 0.
 - 当前 SoC 实例容量是 1024 words, 也就是 4 KiB.
-- reset 不清空 RAM, 避免综合出很大的复位清零逻辑, 也更容易推断为 M10K.
+- Quartus 编译时实例化 `onchip_ram` IP, 本地仿真时使用行为模型.
+- QSF 中通过 `USE_ONCHIP_RAM_IP=1` 选择 Quartus IP 路径.
+- `justfile` 自动收集 Verilog 源文件时排除 `src/soc/onchip_ram/*`, 避免 Verilator 直接编译 Intel `altsyncram` 生成文件.
 
-后续查看 Quartus Fitter 报告时发现, 片上 RAM 可能没有被推断成 M10K block. 报告里 `Total RAM Blocks` 和 `M10K blocks` 为 0, 但寄存器数量达到二十多万级, 同时 LAB 需求超过两万. 这说明 `simple_dual_port_ram` 的 32 KiB 存储阵列被综合进了普通逻辑资源, 这才是当前面积超限的主要来源.
+旧版 `simple_dual_port_ram` 仍保留在源码中, 主要用于单元测试和对照阅读. 它不再作为 `rv32i_soc` 的 boot RAM 实例.
 
-处理方向不是继续扩大片上 RAM, 而是缩小低地址 boot RAM, 把普通 app 加载到 SDRAM 执行. 片上 RAM 只保留给 bootloader 的 `.bss`, sector buffer 和 stack. 如果后续仍需要片上 RAM, 应优先确认它是否真正占用 M10K, 或使用规格匹配的 RAM IP.
+## 片上 RAM 资源优化记录
+
+Quartus Fitter 曾经报告资源严重超限, 典型现象是:
+
+```text
+Error (170012): Fitter requires 21980 LABs to implement the design, but the device contains only 3207 LABs
+```
+
+继续查看 Fitter 报告后, 关键判断点不是只看报错行, 而是看存储器有没有进入 block RAM:
+
+| 指标 | 异常现象 | 含义 |
+| --- | --- | --- |
+| `M10K blocks` | `0 / 397` | 片上 RAM 没有映射到 M10K |
+| `Total registers` | 二十多万级 | RAM 阵列被展开成大量寄存器 |
+| `Total LABs` | 两万级 | 普通逻辑资源被 RAM 消耗掉 |
+
+所以当时的主要问题不是 CPU ALU 或 SDRAM 控制器太大, 而是片上 RAM 没有被综合成 M10K. 即使 Verilog 代码写的是数组, 也不能默认认为综合器一定会按期望推断 block RAM. 双口, byte enable, 同步读写, reset 行为, 读写冲突策略都会影响推断结果.
+
+优化方向分两步:
+
+1. 先缩小低地址 boot RAM. boot RAM 只保留 `0x0000_f000` 到 `0x0000_ffff`, 共 4 KiB, 只给 bootloader 的 `.bss`, sector buffer 和 stack 使用.
+2. 再把普通 app 放到 SDRAM 执行. app 默认从 `0x0201_0000` 加载, 避开低地址 ROM, boot RAM, MMIO 和 VGA framebuffer.
+3. 最后用 Quartus 生成的 `onchip_ram` IP 明确实现 boot RAM. `onchip_dual_port_ram` 负责把项目已有的 `req/ready` RAM 接口适配到 IP 的双口 RAM 接口.
+
+优化后 Fitter 报告应看到类似结果:
+
+| 指标 | 期望结果 | 说明 |
+| --- | --- | --- |
+| `Fitter Status` | `Successful` | 已经可以布局布线 |
+| `Logic utilization` | 约 `10%` | ALM 使用回到合理范围 |
+| `Total LABs` | 约 `470 / 3207` | 不再是两万级 |
+| `Total registers` | 约 `1875` | 不再是二十多万级 |
+| `M10K blocks` | `4 / 397` | boot RAM 已进入 M10K |
+| `Routing` | 平均约 `3%` | 没有严重拥塞 |
+
+Fitter RAM Summary 中应该能看到 `onchip_dual_port_ram:u_ram|onchip_ram:u_onchip_ram|altsyncram` 这条层级, 类型为 `M10K block`, 大小为 `1024 x 32`. 这说明当前 4 KiB boot RAM 已经由 M10K 实现.
+
+后续如果继续增加片上 ROM 或 RAM, 需要先确认目标存储器最终落在 M10K 或合适的 memory block 中. 如果报告里 block memory 没有增加, 但 LAB 或 register 数量突然暴涨, 应优先检查存储器推断或 IP 配置.
 
 ### `simple_bus`
 
@@ -112,14 +151,14 @@ SD 启动固件是 `firmware/bootloader/main.c`. 运行 `just firmware-bootloade
 
 - 接收 core 的 `dmem_req`, `dmem_we`, `dmem_be`, `dmem_addr`, `dmem_wdata`.
 - 当地址落在 ROM 区间且是读访问时, 转发到只读 ROM.
-- 当地址落在 RAM 区间时, 转发到 `simple_dual_port_ram` data 口.
+- 当地址落在 RAM 区间时, 转发到 `onchip_dual_port_ram` data 口.
 - 当地址落在 GPIO MMIO 区间时, 转发到 `gpio_mmio`.
 - 当地址落在 UART MMIO 区间时, 转发到 `uart_tx_mmio`.
 - 当地址落在 SPI MMIO 区间时, 转发到 `spi_master_mmio`.
 - 读数据从被命中的设备返回给 core.
 - `ready` 表示当前访问完成. MMIO 直接为 1, RAM 和 SDRAM 访问会等待对应模块完成.
 
-当前 RAM 从 `0x0000_f000` 开始译码. bus 会把传给 RAM 的地址减去 `0x0000_f000`, 所以 `simple_dual_port_ram` 内部仍然使用从 0 开始的本地地址. GPIO 和 UART 使用更小的 MMIO 窗口.
+当前 RAM 从 `0x0000_f000` 开始译码. bus 会把传给 RAM 的地址减去 `0x0000_f000`, 所以 `onchip_dual_port_ram` 内部仍然使用从 0 开始的本地地址. GPIO 和 UART 使用更小的 MMIO 窗口.
 
 | 地址范围 | 目标 | 说明 |
 | --- | --- | --- |
@@ -223,7 +262,7 @@ DE1-SoC 的 GPIO 排针一般叫 40 pin, 但其中包含 VCC 和 GND. 当前 QSF
 - `rv32i_core`
 - `simple_rom`
 - `simple_bus`
-- `simple_dual_port_ram`
+- `onchip_dual_port_ram`
 - `gpio_mmio`
 - `uart_tx_mmio`
 - `uart_tx`
