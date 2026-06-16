@@ -194,8 +194,7 @@ module rv32i_soc #(
     end
   end
 
-  simple_dual_port_ram #(
-      .RAM_WORDS(1024),
+  onchip_dual_port_ram #(
       .RAM_WORD_ADDR_BITS(10)
   ) u_ram (
       .clk(clk),

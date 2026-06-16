@@ -1,5 +1,5 @@
 build_dir := "build"
-verilog_sources := `find src -type f -name '*.v' -print | sort | tr '\n' ' '`
+verilog_sources := `find src -type f -name '*.v' ! -path 'src/soc/onchip_ram/*' -print | sort | tr '\n' ' '`
 
 default:
     @just --list
@@ -141,7 +141,7 @@ bin-to-rom-hex input output:
     @# xxd -e -g 4 -c 4 把 little-endian 字节按 32-bit word 输出给 $readmemh.
     @xxd -e -g 4 -c 4 {{ input }} | awk '{ print $2 }' > {{ output }}
 
-test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-dual-port-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-sdram-simple-ctrl test-vga-sdram-fb test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-ram-exec test-rv32i-soc-init-data test-rv32i-soc-soft-float test-rv32i-soc-sdram-app test-rv32i-soc-vga-app test-rv32i-soc-snake-app test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
+test: test-regfile test-alu test-imm-gen test-decoder test-branch-unit test-load-store-unit test-pc-reg test-next-pc-unit test-rv32i-core test-simple-rom test-simple-dual-port-ram test-onchip-dual-port-ram test-simple-bus test-gpio-mmio test-uart-tx test-uart-tx-mmio test-spi-master-mmio test-sdram-simple-ctrl test-vga-sdram-fb test-rv32i-soc test-rv32i-soc-mmio test-rv32i-soc-ram-exec test-rv32i-soc-init-data test-rv32i-soc-soft-float test-rv32i-soc-sdram-app test-rv32i-soc-vga-app test-rv32i-soc-snake-app test-rv32i-soc-uart-rom test-rv32i-soc-c-rom test-de1-soc-top
 
 test-regfile:
     @just run-verilog regfile_vlg_tst
@@ -175,6 +175,9 @@ test-simple-rom:
 
 test-simple-dual-port-ram:
     @just run-verilog simple_dual_port_ram_vlg_tst
+
+test-onchip-dual-port-ram:
+    @just run-verilog onchip_dual_port_ram_vlg_tst
 
 test-simple-bus:
     @just run-verilog simple_bus_vlg_tst
